@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CREATOR
+  CLIENT
+}
+
+enum ProjectStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creatorProfile CreatorProfile?
+  clientProfile  ClientProfile?
+
+  projectsCreated Project[]
+  applications    Application[]
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  reviewsGiven    Review[] @relation("ReviewsGiven")
+  reviewsReceived Review[] @relation("ReviewsReceived")
+}
+
+model CreatorProfile {
+  id          Int    @id @default(autoincrement())
+  userId      Int    @unique
+  bio         String?
+  skills      String?
+  portfolio   String?
+  hourlyRate  Float?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ClientProfile {
+  id          Int    @id @default(autoincrement())
+  userId      Int    @unique
+  companyName String?
+  bio         String?
+  website     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id          Int           @id @default(autoincrement())
+  clientId    Int
+  title       String
+  description String
+  budget      Float?
+  deadline    DateTime?
+  status      ProjectStatus @default(OPEN)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  client       User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  applications Application[]
+  reviews      Review[]
+}
+
+model Application {
+  id            Int               @id @default(autoincrement())
+  projectId     Int
+  creatorId     Int
+  proposal      String
+  proposedPrice Float?
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, creatorId])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id             Int      @id @default(autoincrement())
+  projectId      Int
+  reviewerId     Int
+  reviewedUserId Int
+  rating         Int
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewer     User    @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewedUser User    @relation("ReviewsReceived", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+}
