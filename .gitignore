@@ -31,7 +31,6 @@ yarn-debug.log*
 pnpm-debug.log*
 
 # Old nested Expo project
-creator-client-marketplace/
 
 # Backend generated files
 backend/.env
