@@ -34,7 +34,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   creatorProfile CreatorProfile?
-  clientProfile  ClientProfile?
+  brandProfile   BrandProfile?
 
   projectsCreated Project[]
   applications    Application[]
@@ -47,22 +47,30 @@ model User {
 }
 
 model CreatorProfile {
-  id          Int    @id @default(autoincrement())
-  userId      Int    @unique
-  bio         String?
-  skills      String?
-  portfolio   String?
-  hourlyRate  Float?
+  id             Int     @id @default(autoincrement())
+  userId         Int     @unique
+  bio            String?
+  platforms      String?
+  niches         String?
+  followers      Int?
+  averageViews   Int?
+  engagementRate Float?
+  socialLinks    String?
+  portfolio      String?
+  location       String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model ClientProfile {
-  id          Int    @id @default(autoincrement())
-  userId      Int    @unique
+model BrandProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
   companyName String?
   bio         String?
+  industry    String?
   website     String?
+  socialLinks String?
+  location    String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
