@@ -6,6 +6,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const brandProfileRoutes = require("./routes/brandProfileRoutes");
 
 const app = express();
 
@@ -35,3 +36,4 @@ app.listen(PORT, "0.0.0.0", () => {
 app.use("/api/projects", projectRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/profile/brand", brandProfileRoutes);

@@ -29,6 +29,12 @@ export default function ClientHome() {
 >
   <Text style={styles.buttonText}>View Applications</Text>
 </Pressable>
+<Pressable
+  style={styles.button}
+  onPress={() => router.push("/(client)/profile")}
+>
+  <Text style={styles.buttonText}>My Brand Profile</Text>
+</Pressable>
 
       <Pressable
         style={styles.logoutButton}
