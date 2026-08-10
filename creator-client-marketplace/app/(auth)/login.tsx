@@ -12,7 +12,6 @@ import { saveAuth } from "../../services/auth";
 
 import { loginUser } from "../../services/api";
 
-
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +21,7 @@ export default function LoginScreen() {
     if (!email.trim() || !password) {
       Alert.alert(
         "Missing information",
-        "Please enter your email and password."
+        "Please enter your email and password.",
       );
       return;
     }
@@ -39,26 +38,17 @@ export default function LoginScreen() {
 
       console.log("LOGIN RESPONSE:", result);
 
-      Alert.alert(
-        "Welcome back",
-        result.message,
-        [
-          {
-            text: "Continue",
-            onPress: () => {
-              router.replace("/");
-            },
-          },
-        ]
-      );
+      if (result.user.role === "CREATOR") {
+        router.replace("/(creator)");
+      } else {
+        router.replace("/(client)");
+      }
     } catch (error) {
       console.error("LOGIN ERROR:", error);
 
       Alert.alert(
         "Login failed",
-        error instanceof Error
-          ? error.message
-          : "Unable to login."
+        error instanceof Error ? error.message : "Unable to login.",
       );
     } finally {
       setLoading(false);
@@ -69,9 +59,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Welcome back</Text>
 
-      <Text style={styles.subtitle}>
-        Login to continue to your account.
-      </Text>
+      <Text style={styles.subtitle}>Login to continue to your account.</Text>
 
       <Text style={styles.label}>Email</Text>
 
@@ -96,10 +84,7 @@ export default function LoginScreen() {
       />
 
       <Pressable
-        style={[
-          styles.loginButton,
-          loading && styles.disabledButton,
-        ]}
+        style={[styles.loginButton, loading && styles.disabledButton]}
         onPress={handleLogin}
         disabled={loading}
       >
@@ -108,12 +93,9 @@ export default function LoginScreen() {
         </Text>
       </Pressable>
 
-      <Pressable
-        onPress={() => router.push("/(auth)/register")}
-      >
+      <Pressable onPress={() => router.push("/(auth)/register")}>
         <Text style={styles.registerText}>
-          Don't have an account?{" "}
-          <Text style={styles.bold}>Create one</Text>
+          Don't have an account? <Text style={styles.bold}>Create one</Text>
         </Text>
       </Pressable>
 

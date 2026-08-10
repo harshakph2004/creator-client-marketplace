@@ -82,6 +82,12 @@ export default function CreatorHome() {
       >
         <Text style={styles.applicationsText}>My Applications</Text>
       </Pressable>
+      <Pressable
+        style={styles.applicationsButton}
+        onPress={() => router.push("/(creator)/profile")}
+      >
+        <Text style={styles.applicationsText}>My Profile</Text>
+      </Pressable>
       <Text style={styles.sectionTitle}>Available Projects</Text>
 
       {loading ? (
