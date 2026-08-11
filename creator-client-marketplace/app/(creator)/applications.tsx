@@ -19,6 +19,7 @@ type Application = {
   proposedPrice: number | null;
   status: "PENDING" | "ACCEPTED" | "REJECTED";
   createdAt: string;
+
   project: {
     id: number;
     title: string;
@@ -33,33 +34,31 @@ export default function CreatorApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadApplications = async () => {
-      try {
-        const token = await getToken();
+  const loadApplications = async () => {
+    try {
+      const token = await getToken();
 
-        if (!token) {
-          router.replace("/(auth)/login");
-          return;
-        }
-
-        const result = await getCreatorApplications(token);
-
-        setApplications(result.applications || []);
-      } catch (error) {
-        console.error("CREATOR APPLICATIONS ERROR:", error);
-
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "Failed to load applications."
-        );
-      } finally {
-        setLoading(false);
+      if (!token) {
+        router.replace("/(auth)/login");
+        return;
       }
-    };
 
+      const result = await getCreatorApplications(token);
+
+      setApplications(result.applications || []);
+    } catch (error) {
+      console.error("CREATOR APPLICATIONS ERROR:", error);
+
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to load applications.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadApplications();
   }, []);
 
@@ -67,93 +66,230 @@ export default function CreatorApplications() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
+
+        <Text style={styles.loadingText}>Loading your applications...</Text>
       </View>
     );
   }
 
+  const pendingCount = applications.filter(
+    (application) => application.status === "PENDING",
+  ).length;
+
+  const acceptedCount = applications.filter(
+    (application) => application.status === "ACCEPTED",
+  ).length;
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Pressable onPress={() => router.back()}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
+      <Pressable onPress={() => router.back()} style={styles.backButton}>
         <Text style={styles.back}>← Back</Text>
       </Pressable>
 
-      <Text style={styles.title}>My Applications</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Applications</Text>
+
+        <Pressable onPress={loadApplications} style={styles.refreshButton}>
+          <Text style={styles.refreshText}>Refresh</Text>
+        </Pressable>
+      </View>
 
       <Text style={styles.subtitle}>
-        Track the projects you've applied to.
+        Track your applications and campaign decisions.
       </Text>
+
+      {applications.length > 0 && (
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryNumber}>{applications.length}</Text>
+
+            <Text style={styles.summaryLabel}>Total</Text>
+          </View>
+
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryNumber}>{pendingCount}</Text>
+
+            <Text style={styles.summaryLabel}>Pending</Text>
+          </View>
+
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryNumber}>{acceptedCount}</Text>
+
+            <Text style={styles.summaryLabel}>Accepted</Text>
+          </View>
+        </View>
+      )}
 
       {applications.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>
-            No applications yet
-          </Text>
+          <Text style={styles.emptyTitle}>No applications yet</Text>
 
           <Text style={styles.emptyText}>
-            Apply to projects and they'll appear here.
+            Find a campaign and send your first proposal.
           </Text>
 
           <Pressable
             style={styles.browseButton}
             onPress={() => router.replace("/(creator)")}
           >
-            <Text style={styles.browseText}>
-              Browse Projects
-            </Text>
+            <Text style={styles.browseText}>Browse Campaigns</Text>
           </Pressable>
         </View>
       ) : (
-        applications.map((application) => (
-          <View
-            key={application.id}
-            style={styles.card}
-          >
-            <View style={styles.topRow}>
-              <Text style={styles.projectTitle}>
-                {application.project.title}
-              </Text>
+        applications.map((application) => {
+          const isAccepted = application.status === "ACCEPTED";
 
-              <Text
-                style={[
-                  styles.status,
-                  application.status === "ACCEPTED" &&
-                    styles.accepted,
-                  application.status === "REJECTED" &&
-                    styles.rejected,
-                ]}
-              >
-                {application.status}
-              </Text>
-            </View>
+          const isRejected = application.status === "REJECTED";
 
-            <Text style={styles.projectStatus}>
-              Project: {application.project.status}
-            </Text>
+          const isPending = application.status === "PENDING";
 
-            <Text style={styles.label}>Your proposal</Text>
+          return (
+            <View
+              key={application.id}
+              style={[
+                styles.card,
+                isAccepted && styles.acceptedCard,
+                isRejected && styles.rejectedCard,
+              ]}
+            >
+              {/* Campaign header */}
+              <View style={styles.cardHeader}>
+                <View style={styles.titleContainer}>
+                  <Text style={styles.projectTitle}>
+                    {application.project.title}
+                  </Text>
 
-            <Text style={styles.proposal}>
-              {application.proposal}
-            </Text>
+                  <Text style={styles.appliedDate}>
+                    Applied{" "}
+                    {new Date(application.createdAt).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      },
+                    )}
+                  </Text>
+                </View>
 
-            <View style={styles.bottomRow}>
-              <Text style={styles.price}>
-                {application.proposedPrice
-                  ? `₹${application.proposedPrice.toLocaleString()}`
-                  : "Price not specified"}
-              </Text>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    isAccepted && styles.acceptedBadge,
+                    isRejected && styles.rejectedBadge,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      isAccepted && styles.acceptedText,
+                      isRejected && styles.rejectedText,
+                    ]}
+                  >
+                    {application.status}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Accepted message */}
+              {isAccepted && (
+                <View style={styles.successBox}>
+                  <Text style={styles.successTitle}>🎉 You were selected!</Text>
+
+                  <Text style={styles.successText}>
+                    The brand accepted your application. This campaign is now in
+                    progress.
+                  </Text>
+                </View>
+              )}
+
+              {/* Rejected message */}
+              {isRejected && (
+                <View style={styles.rejectedBox}>
+                  <Text style={styles.rejectedMessage}>
+                    This application was not selected.
+                  </Text>
+                </View>
+              )}
+
+              {/* Campaign details */}
+              <View style={styles.detailsRow}>
+                <View style={styles.detailBox}>
+                  <Text style={styles.detailLabel}>Campaign budget</Text>
+
+                  <Text style={styles.detailValue}>
+                    {application.project.budget
+                      ? `₹${application.project.budget.toLocaleString()}`
+                      : "Negotiable"}
+                  </Text>
+                </View>
+
+                <View style={styles.detailBox}>
+                  <Text style={styles.detailLabel}>Your price</Text>
+
+                  <Text style={styles.detailValue}>
+                    {application.proposedPrice
+                      ? `₹${application.proposedPrice.toLocaleString()}`
+                      : "Not specified"}
+                  </Text>
+                </View>
+              </View>
 
               {application.project.deadline && (
-                <Text style={styles.deadline}>
-                  Due{" "}
-                  {new Date(
-                    application.project.deadline
-                  ).toLocaleDateString()}
+                <View style={styles.deadlineRow}>
+                  <Text style={styles.detailLabel}>Campaign deadline</Text>
+
+                  <Text style={styles.deadline}>
+                    {new Date(application.project.deadline).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      },
+                    )}
+                  </Text>
+                </View>
+              )}
+
+              {/* Proposal */}
+              <Text style={styles.sectionLabel}>YOUR PROPOSAL</Text>
+
+              <View style={styles.proposalBox}>
+                <Text style={styles.proposal}>{application.proposal}</Text>
+              </View>
+
+              {/* Current campaign state */}
+              <View style={styles.projectState}>
+                <Text style={styles.detailLabel}>Campaign status</Text>
+
+                <Text style={styles.projectStatus}>
+                  {application.project.status.replace("_", " ")}
                 </Text>
+              </View>
+
+              {/* Action */}
+              {isPending && (
+                <Pressable
+                  style={styles.viewButton}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(creator)/project-details",
+                      params: {
+                        id: String(application.project.id),
+                      },
+                    })
+                  }
+                >
+                  <Text style={styles.viewButtonText}>View Campaign →</Text>
+                </Pressable>
               )}
             </View>
-          </View>
-        ))
+          );
+        })
       )}
     </ScrollView>
   );
@@ -163,8 +299,8 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 55,
+    paddingBottom: 60,
     backgroundColor: "#fff",
   },
 
@@ -175,27 +311,82 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
 
+  loadingText: {
+    marginTop: 10,
+    color: "#777",
+  },
+
+  backButton: {
+    marginBottom: 20,
+  },
+
   back: {
     color: "#555",
-    fontSize: 16,
-    marginBottom: 25,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
   title: {
+    flex: 1,
     fontSize: 30,
     fontWeight: "800",
     color: "#111",
   },
 
+  refreshButton: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  refreshText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#444",
+  },
+
   subtitle: {
     marginTop: 7,
     color: "#777",
-    marginBottom: 30,
+    marginBottom: 25,
+  },
+
+  summaryRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 25,
+  },
+
+  summaryBox: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 14,
+    padding: 14,
+  },
+
+  summaryNumber: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111",
+  },
+
+  summaryLabel: {
+    marginTop: 3,
+    fontSize: 12,
+    color: "#777",
   },
 
   empty: {
     alignItems: "center",
-    paddingTop: 60,
+    paddingTop: 70,
   },
 
   emptyTitle: {
@@ -227,70 +418,184 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: "#e5e5e5",
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 18,
+    backgroundColor: "#fff",
   },
 
-  topRow: {
+  acceptedCard: {
+    borderColor: "#cfe5d1",
+  },
+
+  rejectedCard: {
+    borderColor: "#e5e5e5",
+  },
+
+  cardHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: 12,
   },
 
-  projectTitle: {
+  titleContainer: {
     flex: 1,
-    fontSize: 18,
+  },
+
+  projectTitle: {
+    fontSize: 19,
     fontWeight: "700",
     color: "#111",
   },
 
-  status: {
+  appliedDate: {
+    marginTop: 5,
     fontSize: 12,
+    color: "#888",
+  },
+
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "#f2f2f2",
+  },
+
+  acceptedBadge: {
+    backgroundColor: "#eaf6eb",
+  },
+
+  rejectedBadge: {
+    backgroundColor: "#f3f3f3",
+  },
+
+  statusText: {
+    fontSize: 11,
     fontWeight: "800",
     color: "#777",
   },
 
-  accepted: {
+  acceptedText: {
     color: "green",
   },
 
-  rejected: {
-    color: "red",
+  rejectedText: {
+    color: "#777",
   },
 
-  projectStatus: {
-    marginTop: 7,
+  successBox: {
+    marginTop: 18,
+    padding: 14,
+    borderRadius: 13,
+    backgroundColor: "#f1f8f1",
+  },
+
+  successTitle: {
+    fontWeight: "800",
+    color: "green",
+  },
+
+  successText: {
+    marginTop: 5,
+    lineHeight: 20,
+    color: "#456",
+  },
+
+  rejectedBox: {
+    marginTop: 18,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#f7f7f7",
+  },
+
+  rejectedMessage: {
+    color: "#777",
     fontSize: 13,
-    color: "#777",
   },
 
-  label: {
-    marginTop: 18,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#777",
-    textTransform: "uppercase",
-  },
-
-  proposal: {
-    marginTop: 7,
-    lineHeight: 21,
-    color: "#444",
-  },
-
-  bottomRow: {
+  detailsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 10,
     marginTop: 18,
   },
 
-  price: {
+  detailBox: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    padding: 13,
+  },
+
+  detailLabel: {
+    fontSize: 11,
+    color: "#888",
+  },
+
+  detailValue: {
+    marginTop: 4,
+    fontSize: 15,
     fontWeight: "700",
     color: "#111",
   },
 
+  deadlineRow: {
+    marginTop: 14,
+  },
+
   deadline: {
-    color: "#777",
+    marginTop: 3,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  sectionLabel: {
+    marginTop: 20,
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#888",
+    letterSpacing: 0.5,
+  },
+
+  proposalBox: {
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#fafafa",
+  },
+
+  proposal: {
+    lineHeight: 21,
+    color: "#444",
+  },
+
+  projectState: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+
+  projectStatus: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#333",
+    textTransform: "capitalize",
+  },
+
+  viewButton: {
+    height: 48,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  viewButtonText: {
+    fontWeight: "700",
+    color: "#333",
   },
 });

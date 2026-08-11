@@ -72,9 +72,7 @@ export default function CreatorProfile() {
 
       Alert.alert(
         "Error",
-        error instanceof Error
-          ? error.message
-          : "Unable to load profile."
+        error instanceof Error ? error.message : "Unable to load profile.",
       );
     } finally {
       setLoading(false);
@@ -113,19 +111,18 @@ export default function CreatorProfile() {
           bio: profile.bio || null,
           platforms: profile.platforms || null,
           niches: profile.niches || null,
+
           followers:
-            profile.followers === null || profile.followers === ""
-              ? null
-              : Number(profile.followers),
+            profile.followers === null ? null : Number(profile.followers),
+
           averageViews:
-            profile.averageViews === null || profile.averageViews === ""
-              ? null
-              : Number(profile.averageViews),
+            profile.averageViews === null ? null : Number(profile.averageViews),
+
           engagementRate:
-            profile.engagementRate === null ||
-            profile.engagementRate === ""
+            profile.engagementRate === null
               ? null
               : Number(profile.engagementRate),
+
           socialLinks: profile.socialLinks || null,
           portfolio: profile.portfolio || null,
           location: profile.location || null,
@@ -146,9 +143,7 @@ export default function CreatorProfile() {
 
       Alert.alert(
         "Error",
-        error instanceof Error
-          ? error.message
-          : "Unable to save profile."
+        error instanceof Error ? error.message : "Unable to save profile.",
       );
     } finally {
       setSaving(false);
@@ -169,10 +164,7 @@ export default function CreatorProfile() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Pressable
-        onPress={() => router.back()}
-        style={styles.backButton}
-      >
+      <Pressable onPress={() => router.back()} style={styles.backButton}>
         <Text style={styles.backText}>← Back</Text>
       </Pressable>
 
@@ -249,8 +241,7 @@ export default function CreatorProfile() {
         placeholder="e.g. 48000"
         keyboardType="numeric"
         value={
-          profile.averageViews === null ||
-          profile.averageViews === undefined
+          profile.averageViews === null || profile.averageViews === undefined
             ? ""
             : String(profile.averageViews)
         }
@@ -268,9 +259,7 @@ export default function CreatorProfile() {
             ? ""
             : String(profile.engagementRate)
         }
-        onChangeText={(value) =>
-          updateField("engagementRate", value)
-        }
+        onChangeText={(value) => updateField("engagementRate", value)}
       />
 
       <Text style={styles.sectionTitle}>Portfolio</Text>
@@ -286,10 +275,7 @@ export default function CreatorProfile() {
       />
 
       <Pressable
-        style={[
-          styles.saveButton,
-          saving && styles.disabledButton,
-        ]}
+        style={[styles.saveButton, saving && styles.disabledButton]}
         onPress={saveProfile}
         disabled={saving}
       >

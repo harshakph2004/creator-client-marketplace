@@ -76,15 +76,23 @@ model BrandProfile {
 }
 
 model Project {
-  id          Int           @id @default(autoincrement())
-  clientId    Int
-  title       String
-  description String
-  budget      Float?
-  deadline    DateTime?
-  status      ProjectStatus @default(OPEN)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id             Int           @id @default(autoincrement())
+  clientId       Int
+  title          String
+  description    String
+  platform       String?
+  contentType    String?
+  niche          String?
+  deliverables   String?
+  budget         Float?
+  minFollowers   Int?
+  deadline       DateTime?
+  deliverableUrl String?
+  creatorNotes   String?
+  completedAt    DateTime?
+  status         ProjectStatus @default(OPEN)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   client       User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
   applications Application[]

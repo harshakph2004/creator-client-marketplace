@@ -16,12 +16,17 @@ type Project = {
   id: number;
   title: string;
   description: string;
+  platform: string | null;
+  contentType: string | null;
+  niche: string | null;
+  deliverables: string | null;
   budget: number | null;
+  minFollowers: number | null;
   deadline: string | null;
   client: {
     id: number;
     name: string;
-    clientProfile?: {
+    brandProfile?: {
       companyName: string | null;
     } | null;
   };
@@ -42,11 +47,11 @@ export default function CreatorHome() {
 
       const result = await getProjects(token);
 
-      console.log("PROJECTS:", result);
+      console.log("CAMPAIGNS:", result);
 
       setProjects(result.projects || []);
     } catch (error) {
-      console.error("PROJECT LOAD ERROR:", error);
+      console.error("CAMPAIGN LOAD ERROR:", error);
     } finally {
       setLoading(false);
     }
@@ -68,36 +73,50 @@ export default function CreatorHome() {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Find Projects</Text>
-          <Text style={styles.subtitle}>Find projects and grow your work.</Text>
+          <Text style={styles.title}>Find Campaigns</Text>
+
+          <Text style={styles.subtitle}>
+            Find brands and grow your creator business.
+          </Text>
         </View>
 
         <Pressable onPress={handleLogout}>
           <Text style={styles.logout}>Logout</Text>
         </Pressable>
       </View>
-      <Pressable
-        style={styles.applicationsButton}
-        onPress={() => router.push("/(creator)/applications")}
-      >
-        <Text style={styles.applicationsText}>My Applications</Text>
-      </Pressable>
-      <Pressable
-        style={styles.applicationsButton}
-        onPress={() => router.push("/(creator)/profile")}
-      >
-        <Text style={styles.applicationsText}>My Profile</Text>
-      </Pressable>
-      <Text style={styles.sectionTitle}>Available Projects</Text>
+
+      <View style={styles.actions}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => router.push("/(creator)/applications")}
+        >
+          <Text style={styles.actionText}>My Applications</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => router.push("/(creator)/profile")}
+        >
+          <Text style={styles.actionText}>My Profile</Text>
+        </Pressable>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => router.push("/(creator)/active-campaign")}
+        >
+          <Text style={styles.actionText}>Active Campaigns</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.sectionTitle}>Available Campaigns</Text>
 
       {loading ? (
         <ActivityIndicator size="large" />
       ) : projects.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>No projects available</Text>
+          <Text style={styles.emptyTitle}>No campaigns available</Text>
 
           <Text style={styles.emptyText}>
-            New projects posted by clients will appear here.
+            New brand campaigns will appear here.
           </Text>
         </View>
       ) : (
@@ -114,22 +133,89 @@ export default function CreatorHome() {
               })
             }
           >
-            <Text style={styles.projectTitle}>{project.title}</Text>
+            <View style={styles.cardTop}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.projectTitle}>{project.title}</Text>
 
-            <Text style={styles.client}>Posted by {project.client.name}</Text>
+                <Text style={styles.client}>
+                  {project.client.brandProfile?.companyName ||
+                    project.client.name}
+                </Text>
+              </View>
+
+              {project.platform && (
+                <View style={styles.platformBadge}>
+                  <Text style={styles.platformText}>{project.platform}</Text>
+                </View>
+              )}
+            </View>
+
+            {project.niche && <Text style={styles.niche}>{project.niche}</Text>}
 
             <Text style={styles.description} numberOfLines={3}>
               {project.description}
             </Text>
 
-            <View style={styles.bottomRow}>
-              <Text style={styles.budget}>
-                {project.budget
-                  ? `₹${project.budget.toLocaleString()}`
-                  : "Negotiable"}
-              </Text>
+            {(project.contentType || project.deliverables) && (
+              <View style={styles.details}>
+                {project.contentType && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Content</Text>
+                    <Text style={styles.detailValue}>
+                      {project.contentType}
+                    </Text>
+                  </View>
+                )}
 
-              <Text style={styles.view}>View Project →</Text>
+                {project.deliverables && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Deliverables</Text>
+                    <Text style={styles.detailValue} numberOfLines={2}>
+                      {project.deliverables}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            <View style={styles.stats}>
+              {project.minFollowers !== null && (
+                <View>
+                  <Text style={styles.statLabel}>Minimum followers</Text>
+
+                  <Text style={styles.statValue}>
+                    {project.minFollowers.toLocaleString()}+
+                  </Text>
+                </View>
+              )}
+
+              <View>
+                <Text style={styles.statLabel}>Budget</Text>
+
+                <Text style={styles.statValue}>
+                  {project.budget
+                    ? `₹${project.budget.toLocaleString()}`
+                    : "Negotiable"}
+                </Text>
+              </View>
+
+              {project.deadline && (
+                <View>
+                  <Text style={styles.statLabel}>Deadline</Text>
+
+                  <Text style={styles.statValue}>
+                    {new Date(project.deadline).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.viewRow}>
+              <Text style={styles.view}>View Campaign →</Text>
             </View>
           </Pressable>
         ))
@@ -143,7 +229,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 50,
     backgroundColor: "#fff",
   },
 
@@ -169,6 +255,28 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  actions: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: 10,
+  marginTop: 22,
+},
+
+  actionButton: {
+    minWidth: 150,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  actionText: {
+    fontWeight: "700",
+    color: "#333",
+  },
+
   sectionTitle: {
     marginTop: 36,
     marginBottom: 16,
@@ -180,10 +288,21 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: "#e5e5e5",
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 18,
     marginBottom: 16,
     backgroundColor: "#fff",
+  },
+
+  cardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+
+  titleContainer: {
+    flex: 1,
   },
 
   projectTitle: {
@@ -198,28 +317,86 @@ const styles = StyleSheet.create({
     color: "#777",
   },
 
+  platformBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#f2f2f2",
+  },
+
+  platformText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#333",
+  },
+
+  niche: {
+    alignSelf: "flex-start",
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#555",
+  },
+
   description: {
     marginTop: 14,
     lineHeight: 21,
     color: "#444",
   },
 
-  bottomRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 18,
+  details: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
   },
 
-  budget: {
-    fontSize: 16,
+  detailRow: {
+    marginBottom: 10,
+  },
+
+  detailLabel: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 3,
+  },
+
+  detailValue: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "600",
+  },
+
+  stats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 8,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+
+  statLabel: {
+    fontSize: 11,
+    color: "#888",
+  },
+
+  statValue: {
+    marginTop: 3,
+    fontSize: 14,
     fontWeight: "700",
     color: "#111",
   },
 
+  viewRow: {
+    marginTop: 16,
+    alignItems: "flex-end",
+  },
+
   view: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#555",
   },
 
@@ -238,19 +415,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
     color: "#777",
-  },
-  applicationsButton: {
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    height: 50,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  applicationsText: {
-    fontWeight: "700",
-    color: "#333",
   },
 });

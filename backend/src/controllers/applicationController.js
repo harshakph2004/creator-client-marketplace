@@ -32,15 +32,14 @@ const createApplication = async (req, res) => {
       });
     }
 
-    const existingApplication =
-      await prisma.application.findUnique({
-        where: {
-          projectId_creatorId: {
-            projectId: Number(projectId),
-            creatorId: req.user.userId,
-          },
+    const existingApplication = await prisma.application.findUnique({
+      where: {
+        projectId_creatorId: {
+          projectId: Number(projectId),
+          creatorId: req.user.userId,
         },
-      });
+      },
+    });
 
     if (existingApplication) {
       return res.status(409).json({
@@ -53,9 +52,7 @@ const createApplication = async (req, res) => {
         projectId: Number(projectId),
         creatorId: req.user.userId,
         proposal: proposal.trim(),
-        proposedPrice: proposedPrice
-          ? Number(proposedPrice)
-          : null,
+        proposedPrice: proposedPrice ? Number(proposedPrice) : null,
       },
     });
 
@@ -106,9 +103,14 @@ const getClientApplications = async (req, res) => {
             creatorProfile: {
               select: {
                 bio: true,
-                skills: true,
+                platforms: true,
+                niches: true,
+                followers: true,
+                averageViews: true,
+                engagementRate: true,
+                socialLinks: true,
                 portfolio: true,
-                hourlyRate: true,
+                location: true,
               },
             },
           },
@@ -174,15 +176,14 @@ const updateApplicationStatus = async (req, res) => {
 
     if (status === "ACCEPTED") {
       const result = await prisma.$transaction(async (tx) => {
-        const updatedApplication =
-          await tx.application.update({
-            where: {
-              id: applicationId,
-            },
-            data: {
-              status: "ACCEPTED",
-            },
-          });
+        const updatedApplication = await tx.application.update({
+          where: {
+            id: applicationId,
+          },
+          data: {
+            status: "ACCEPTED",
+          },
+        });
 
         await tx.project.update({
           where: {
@@ -215,15 +216,14 @@ const updateApplicationStatus = async (req, res) => {
       });
     }
 
-    const updatedApplication =
-      await prisma.application.update({
-        where: {
-          id: applicationId,
-        },
-        data: {
-          status: "REJECTED",
-        },
-      });
+    const updatedApplication = await prisma.application.update({
+      where: {
+        id: applicationId,
+      },
+      data: {
+        status: "REJECTED",
+      },
+    });
 
     return res.status(200).json({
       message: "Application rejected",

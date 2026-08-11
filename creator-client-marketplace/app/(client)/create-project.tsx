@@ -15,15 +15,20 @@ import { getToken } from "../../services/auth";
 export default function CreateProjectScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [contentType, setContentType] = useState("");
+  const [niche, setNiche] = useState("");
+  const [deliverables, setDeliverables] = useState("");
   const [budget, setBudget] = useState("");
+  const [minFollowers, setMinFollowers] = useState("");
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleCreateProject = async () => {
+  const handleCreateCampaign = async () => {
     if (!title.trim() || !description.trim()) {
       Alert.alert(
         "Missing information",
-        "Please enter a project title and description."
+        "Please enter a campaign title and description."
       );
       return;
     }
@@ -43,15 +48,22 @@ export default function CreateProjectScreen() {
         {
           title: title.trim(),
           description: description.trim(),
+          platform: platform.trim() || undefined,
+          contentType: contentType.trim() || undefined,
+          niche: niche.trim() || undefined,
+          deliverables: deliverables.trim() || undefined,
           budget: budget ? Number(budget) : undefined,
+          minFollowers: minFollowers
+            ? Number(minFollowers)
+            : undefined,
           deadline: deadline || undefined,
         },
         token
       );
 
       Alert.alert(
-        "Project created",
-        "Your project is now available to creators.",
+        "Campaign created",
+        "Your campaign is now available to creators.",
         [
           {
             text: "Continue",
@@ -61,7 +73,7 @@ export default function CreateProjectScreen() {
       );
     } catch (error) {
       Alert.alert(
-        "Could not create project",
+        "Could not create campaign",
         error instanceof Error
           ? error.message
           : "Something went wrong."
@@ -76,17 +88,20 @@ export default function CreateProjectScreen() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>Create Project</Text>
+      <Text style={styles.title}>Create Campaign</Text>
 
       <Text style={styles.subtitle}>
-        Tell creators what you need help with.
+        Tell creators about your promotion campaign and what you
+        need from them.
       </Text>
 
-      <Text style={styles.label}>Project title</Text>
+      <Text style={styles.sectionTitle}>Campaign Details</Text>
+
+      <Text style={styles.label}>Campaign title</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="e.g. Build a React Native app"
+        placeholder="e.g. Summer Instagram Promotion"
         value={title}
         onChangeText={setTitle}
       />
@@ -95,14 +110,70 @@ export default function CreateProjectScreen() {
 
       <TextInput
         style={[styles.input, styles.description]}
-        placeholder="Describe the project, requirements and expectations..."
+        placeholder="Describe your brand, campaign goals and requirements..."
         multiline
         textAlignVertical="top"
         value={description}
         onChangeText={setDescription}
       />
 
-      <Text style={styles.label}>Budget (₹)</Text>
+      <Text style={styles.sectionTitle}>Social Media</Text>
+
+      <Text style={styles.label}>Platform</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. Instagram, YouTube, TikTok"
+        value={platform}
+        onChangeText={setPlatform}
+      />
+
+      <Text style={styles.label}>Content type</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. Reel, Story, Short, Video"
+        value={contentType}
+        onChangeText={setContentType}
+      />
+
+      <Text style={styles.label}>Niche</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. Gaming, Fitness, Fashion, Tech"
+        value={niche}
+        onChangeText={setNiche}
+      />
+
+      <Text style={styles.label}>Deliverables</Text>
+
+      <TextInput
+        style={[styles.input, styles.description]}
+        placeholder={
+          "e.g.\n1 Instagram Reel\n2 Stories\nProduct mention"
+        }
+        multiline
+        textAlignVertical="top"
+        value={deliverables}
+        onChangeText={setDeliverables}
+      />
+
+      <Text style={styles.sectionTitle}>Creator Requirements</Text>
+
+      <Text style={styles.label}>Minimum followers</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. 20000"
+        keyboardType="numeric"
+        value={minFollowers}
+        onChangeText={setMinFollowers}
+      />
+
+      <Text style={styles.sectionTitle}>Budget & Deadline</Text>
+
+      <Text style={styles.label}>Campaign budget (₹)</Text>
 
       <TextInput
         style={styles.input}
@@ -126,11 +197,11 @@ export default function CreateProjectScreen() {
           styles.button,
           loading && styles.disabled,
         ]}
-        onPress={handleCreateProject}
+        onPress={handleCreateCampaign}
         disabled={loading}
       >
         <Text style={styles.buttonText}>
-          {loading ? "Creating..." : "Create Project"}
+          {loading ? "Creating..." : "Create Campaign"}
         </Text>
       </Pressable>
 
@@ -149,7 +220,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 28,
     paddingTop: 70,
-    paddingBottom: 40,
+    paddingBottom: 50,
     backgroundColor: "#fff",
   },
 
@@ -161,9 +232,18 @@ const styles = StyleSheet.create({
 
   subtitle: {
     marginTop: 8,
-    marginBottom: 28,
+    marginBottom: 20,
     color: "#777",
     fontSize: 15,
+    lineHeight: 21,
+  },
+
+  sectionTitle: {
+    marginTop: 28,
+    marginBottom: 4,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111",
   },
 
   label: {
@@ -185,7 +265,7 @@ const styles = StyleSheet.create({
   },
 
   description: {
-    height: 150,
+    height: 140,
     paddingTop: 16,
   },
 

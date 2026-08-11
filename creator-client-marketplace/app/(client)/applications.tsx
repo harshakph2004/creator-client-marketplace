@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -21,27 +22,36 @@ type Application = {
   proposal: string;
   proposedPrice: number | null;
   status: "PENDING" | "ACCEPTED" | "REJECTED";
+
   project: {
     id: number;
     title: string;
     budget: number | null;
     status: string;
   };
+
   creator: {
     id: number;
     name: string;
     email: string;
+
     creatorProfile?: {
       bio: string | null;
-      skills: string | null;
+      platforms: string | null;
+      niches: string | null;
+      followers: number | null;
+      averageViews: number | null;
+      engagementRate: number | null;
+      socialLinks: string | null;
       portfolio: string | null;
-      hourlyRate: number | null;
+      location: string | null;
     } | null;
   };
 };
 
 export default function ApplicationsScreen() {
   const [applications, setApplications] = useState<Application[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
@@ -62,9 +72,7 @@ export default function ApplicationsScreen() {
 
       Alert.alert(
         "Error",
-        error instanceof Error
-          ? error.message
-          : "Failed to load applications."
+        error instanceof Error ? error.message : "Failed to load applications.",
       );
     } finally {
       setLoading(false);
@@ -75,12 +83,82 @@ export default function ApplicationsScreen() {
     loadApplications();
   }, []);
 
-  const handleDecision = (
+  const processDecision = async (
     applicationId: number,
-    status: "ACCEPTED" | "REJECTED"
+    status: "ACCEPTED" | "REJECTED",
+  ) => {
+    try {
+      const token = await getToken();
+
+      if (!token) {
+        router.replace("/(auth)/login");
+        return;
+      }
+
+      setUpdatingId(applicationId);
+
+      console.log("UPDATING APPLICATION:", applicationId, status);
+
+      await updateApplicationStatus(applicationId, status, token);
+
+      await loadApplications();
+
+      if (Platform.OS === "web") {
+        window.alert(
+          status === "ACCEPTED"
+            ? "Creator accepted. Campaign is now in progress."
+            : "Application rejected.",
+        );
+      } else {
+        Alert.alert(
+          "Success",
+          status === "ACCEPTED"
+            ? "Creator accepted. Campaign is now in progress."
+            : "Application rejected.",
+        );
+      }
+    } catch (error) {
+      console.error("UPDATE APPLICATION ERROR:", error);
+
+      if (Platform.OS === "web") {
+        window.alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to update application.",
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "Failed to update application.",
+        );
+      }
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+  const handleDecision = async (
+    applicationId: number,
+    status: "ACCEPTED" | "REJECTED",
   ) => {
     const action = status === "ACCEPTED" ? "accept" : "reject";
 
+    // Web confirmation
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        `Are you sure you want to ${action} this application?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      await processDecision(applicationId, status);
+      return;
+    }
+
+    // Android / iOS confirmation
     Alert.alert(
       `${status === "ACCEPTED" ? "Accept" : "Reject"} application?`,
       `Are you sure you want to ${action} this application?`,
@@ -92,44 +170,9 @@ export default function ApplicationsScreen() {
         {
           text: status === "ACCEPTED" ? "Accept" : "Reject",
           style: status === "REJECTED" ? "destructive" : "default",
-          onPress: async () => {
-            try {
-              const token = await getToken();
-
-              if (!token) {
-                router.replace("/(auth)/login");
-                return;
-              }
-
-              setUpdatingId(applicationId);
-
-              await updateApplicationStatus(
-                applicationId,
-                status,
-                token
-              );
-
-              await loadApplications();
-
-              Alert.alert(
-                "Success",
-                status === "ACCEPTED"
-                  ? "Creator accepted. Project is now in progress."
-                  : "Application rejected."
-              );
-            } catch (error) {
-              Alert.alert(
-                "Error",
-                error instanceof Error
-                  ? error.message
-                  : "Failed to update application."
-              );
-            } finally {
-              setUpdatingId(null);
-            }
-          },
+          onPress: () => processDecision(applicationId, status),
         },
-      ]
+      ],
     );
   };
 
@@ -137,6 +180,8 @@ export default function ApplicationsScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
+
+        <Text style={styles.loadingText}>Loading applications...</Text>
       </View>
     );
   }
@@ -144,6 +189,7 @@ export default function ApplicationsScreen() {
   return (
     <ScrollView
       contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
     >
       <Pressable onPress={() => router.back()}>
         <Text style={styles.back}>← Back</Text>
@@ -152,14 +198,12 @@ export default function ApplicationsScreen() {
       <Text style={styles.title}>Applications</Text>
 
       <Text style={styles.subtitle}>
-        Review creators who applied to your projects.
+        Review creators who applied to your campaigns.
       </Text>
 
       {applications.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>
-            No applications yet
-          </Text>
+          <Text style={styles.emptyTitle}>No applications yet</Text>
 
           <Text style={styles.emptyText}>
             Applications from creators will appear here.
@@ -167,21 +211,20 @@ export default function ApplicationsScreen() {
         </View>
       ) : (
         applications.map((application) => {
-          const isUpdating =
-            updatingId === application.id;
+          const profile = application.creator.creatorProfile;
+
+          const isUpdating = updatingId === application.id;
 
           return (
-            <View
-              key={application.id}
-              style={styles.card}
-            >
+            <View key={application.id} style={styles.card}>
+              {/* Campaign + Status */}
               <View style={styles.topRow}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.titleContainer}>
                   <Text style={styles.projectTitle}>
                     {application.project.title}
                   </Text>
 
-                  <Text style={styles.creator}>
+                  <Text style={styles.creatorName}>
                     {application.creator.name}
                   </Text>
                 </View>
@@ -189,77 +232,135 @@ export default function ApplicationsScreen() {
                 <Text
                   style={[
                     styles.status,
-                    application.status === "ACCEPTED" &&
-                      styles.accepted,
-                    application.status === "REJECTED" &&
-                      styles.rejected,
+                    application.status === "ACCEPTED" && styles.accepted,
+                    application.status === "REJECTED" && styles.rejected,
                   ]}
                 >
                   {application.status}
                 </Text>
               </View>
 
-              {application.creator.creatorProfile
-                ?.skills && (
-                <Text style={styles.skills}>
-                  {application.creator.creatorProfile.skills}
+              {/* Creator information */}
+              <View style={styles.creatorInfo}>
+                <Text style={styles.sectionLabel}>CREATOR PROFILE</Text>
+
+                {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+
+                <View style={styles.statsRow}>
+                  {profile?.followers !== null &&
+                    profile?.followers !== undefined && (
+                      <View style={styles.stat}>
+                        <Text style={styles.statValue}>
+                          {profile.followers.toLocaleString()}
+                        </Text>
+
+                        <Text style={styles.statLabel}>Followers</Text>
+                      </View>
+                    )}
+
+                  {profile?.averageViews !== null &&
+                    profile?.averageViews !== undefined && (
+                      <View style={styles.stat}>
+                        <Text style={styles.statValue}>
+                          {profile.averageViews.toLocaleString()}
+                        </Text>
+
+                        <Text style={styles.statLabel}>Avg Views</Text>
+                      </View>
+                    )}
+
+                  {profile?.engagementRate !== null &&
+                    profile?.engagementRate !== undefined && (
+                      <View style={styles.stat}>
+                        <Text style={styles.statValue}>
+                          {profile.engagementRate}%
+                        </Text>
+
+                        <Text style={styles.statLabel}>Engagement</Text>
+                      </View>
+                    )}
+                </View>
+
+                {profile?.platforms && (
+                  <View style={styles.detail}>
+                    <Text style={styles.detailLabel}>Platforms</Text>
+
+                    <Text style={styles.detailValue}>{profile.platforms}</Text>
+                  </View>
+                )}
+
+                {profile?.niches && (
+                  <View style={styles.detail}>
+                    <Text style={styles.detailLabel}>Niches</Text>
+
+                    <Text style={styles.detailValue}>{profile.niches}</Text>
+                  </View>
+                )}
+
+                {profile?.location && (
+                  <View style={styles.detail}>
+                    <Text style={styles.detailLabel}>Location</Text>
+
+                    <Text style={styles.detailValue}>{profile.location}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Proposal */}
+              <Text style={styles.sectionLabel}>PROPOSAL</Text>
+
+              <Text style={styles.proposal}>{application.proposal}</Text>
+
+              {/* Price */}
+              <View style={styles.priceBox}>
+                <Text style={styles.priceLabel}>Creator's proposed price</Text>
+
+                <Text style={styles.price}>
+                  {application.proposedPrice
+                    ? `₹${application.proposedPrice.toLocaleString()}`
+                    : "Not specified"}
                 </Text>
-              )}
+              </View>
 
-              <Text style={styles.label}>
-                Proposal
-              </Text>
-
-              <Text style={styles.proposal}>
-                {application.proposal}
-              </Text>
-
-              <Text style={styles.price}>
-                Proposed price:{" "}
-                {application.proposedPrice
-                  ? `₹${application.proposedPrice.toLocaleString()}`
-                  : "Not specified"}
-              </Text>
-
+              {/* Actions */}
               {application.status === "PENDING" && (
                 <View style={styles.actions}>
                   <Pressable
-                    style={[
-                      styles.actionButton,
-                      styles.rejectButton,
-                    ]}
+                    style={[styles.actionButton, styles.rejectButton]}
                     disabled={isUpdating}
-                    onPress={() =>
-                      handleDecision(
-                        application.id,
-                        "REJECTED"
-                      )
-                    }
+                    onPress={() => handleDecision(application.id, "REJECTED")}
                   >
-                    <Text style={styles.rejectText}>
-                      Reject
-                    </Text>
+                    <Text style={styles.rejectText}>Reject</Text>
                   </Pressable>
 
                   <Pressable
-                    style={[
-                      styles.actionButton,
-                      styles.acceptButton,
-                    ]}
+                    style={[styles.actionButton, styles.acceptButton]}
                     disabled={isUpdating}
-                    onPress={() =>
-                      handleDecision(
-                        application.id,
-                        "ACCEPTED"
-                      )
-                    }
+                    onPress={() => {
+                      console.log("ACCEPT BUTTON CLICKED", application.id);
+                      handleDecision(application.id, "ACCEPTED");
+                    }}
                   >
                     <Text style={styles.acceptText}>
-                      {isUpdating
-                        ? "Updating..."
-                        : "Accept"}
+                      {isUpdating ? "Updating..." : "Accept Creator"}
                     </Text>
                   </Pressable>
+                </View>
+              )}
+
+              {application.status === "ACCEPTED" && (
+                <View style={styles.acceptedBox}>
+                  <Text style={styles.acceptedBoxText}>
+                    ✓ Creator accepted for this campaign
+                  </Text>
+                </View>
+              )}
+
+              {application.status === "REJECTED" && (
+                <View style={styles.rejectedBox}>
+                  <Text style={styles.rejectedBoxText}>
+                    Application rejected
+                  </Text>
                 </View>
               )}
             </View>
@@ -274,8 +375,8 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 55,
+    paddingBottom: 60,
     backgroundColor: "#fff",
   },
 
@@ -283,12 +384,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#fff",
+  },
+
+  loadingText: {
+    marginTop: 10,
+    color: "#777",
   },
 
   back: {
     color: "#555",
-    fontSize: 16,
-    marginBottom: 25,
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 22,
   },
 
   title: {
@@ -323,14 +431,19 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: "#e5e5e5",
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 18,
+    backgroundColor: "#fff",
   },
 
   topRow: {
     flexDirection: "row",
     alignItems: "flex-start",
+  },
+
+  titleContainer: {
+    flex: 1,
   },
 
   projectTitle: {
@@ -339,39 +452,15 @@ const styles = StyleSheet.create({
     color: "#111",
   },
 
-  creator: {
+  creatorName: {
     marginTop: 7,
     fontSize: 16,
     fontWeight: "600",
-  },
-
-  skills: {
-    marginTop: 6,
-    color: "#777",
-  },
-
-  label: {
-    marginTop: 18,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#777",
-    textTransform: "uppercase",
-  },
-
-  proposal: {
-    marginTop: 7,
-    lineHeight: 21,
-    color: "#444",
-  },
-
-  price: {
-    marginTop: 16,
-    fontWeight: "700",
-    color: "#111",
+    color: "#333",
   },
 
   status: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
     color: "#777",
   },
@@ -384,6 +473,92 @@ const styles = StyleSheet.create({
     color: "red",
   },
 
+  creatorInfo: {
+    marginTop: 20,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#888",
+    letterSpacing: 0.5,
+  },
+
+  bio: {
+    marginTop: 8,
+    lineHeight: 21,
+    color: "#444",
+  },
+
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+  },
+
+  stat: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    padding: 12,
+  },
+
+  statValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#111",
+  },
+
+  statLabel: {
+    marginTop: 3,
+    fontSize: 11,
+    color: "#777",
+  },
+
+  detail: {
+    marginTop: 12,
+  },
+
+  detailLabel: {
+    fontSize: 11,
+    color: "#888",
+  },
+
+  detailValue: {
+    marginTop: 3,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  proposal: {
+    marginTop: 8,
+    lineHeight: 22,
+    color: "#444",
+  },
+
+  priceBox: {
+    marginTop: 18,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#f5f5f5",
+  },
+
+  priceLabel: {
+    fontSize: 12,
+    color: "#777",
+  },
+
+  price: {
+    marginTop: 4,
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111",
+  },
+
   actions: {
     flexDirection: "row",
     gap: 12,
@@ -392,7 +567,7 @@ const styles = StyleSheet.create({
 
   actionButton: {
     flex: 1,
-    height: 48,
+    height: 50,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
@@ -415,5 +590,29 @@ const styles = StyleSheet.create({
   acceptText: {
     fontWeight: "700",
     color: "#fff",
+  },
+
+  acceptedBox: {
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#f1f8f1",
+  },
+
+  acceptedBoxText: {
+    color: "green",
+    fontWeight: "700",
+  },
+
+  rejectedBox: {
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#fafafa",
+  },
+
+  rejectedBoxText: {
+    color: "#777",
+    fontWeight: "600",
   },
 });
