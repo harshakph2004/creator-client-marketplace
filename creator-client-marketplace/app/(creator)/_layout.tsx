@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, View } from "react-native";
 
 export default function CreatorLayout() {
   return (
@@ -14,6 +15,15 @@ export default function CreatorLayout() {
           fontSize: 11,
           fontWeight: "600",
         },
+
+        // White background without changing the tab bar's
+        // native height/touch area.
+        tabBarBackground: () => (
+          <View
+            pointerEvents="none"
+            style={styles.tabBarBackground}
+          />
+        ),
       }}
     >
       <Tabs.Screen
@@ -93,3 +103,12 @@ export default function CreatorLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5E5",
+  },
+});

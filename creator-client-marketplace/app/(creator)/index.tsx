@@ -231,13 +231,13 @@ export default function CreatorHome() {
                     pressed && styles.cardPressed,
                   ]}
                   onPress={() =>
-                     console.log("🔥 CAMPAIGN PRESSED")
-                    // router.push({
-                    //   pathname: "/(creator)/project-details",
-                    //   params: {
-                    //     id: String(project.id),
-                    //   },
-                    // })
+                     //console.log("🔥 CAMPAIGN PRESSED")
+                    router.push({
+                      pathname: "/(creator)/project-details",
+                      params: {
+                        id: String(project.id),
+                      },
+                    })
                   }
                 >
                   {/* Brand */}

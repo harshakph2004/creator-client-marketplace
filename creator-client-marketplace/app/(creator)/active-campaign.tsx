@@ -17,6 +17,13 @@ import {
 } from "../../services/api";
 import { getToken } from "../../services/auth";
 
+import {
+  Colors,
+  radius,
+  spacing,
+  typography,
+} from "../../constants/theme";
+
 type Project = {
   id: number;
   title: string;
@@ -47,12 +54,13 @@ type Project = {
   }[];
 };
 
+const colors = Colors.light;
+
 export default function ActiveCampaignScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submittingId, setSubmittingId] = useState<number | null>(
-    null
-  );
+  const [submittingId, setSubmittingId] =
+    useState<number | null>(null);
 
   const [urls, setUrls] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -76,7 +84,7 @@ export default function ActiveCampaignScreen() {
         "Error",
         error instanceof Error
           ? error.message
-          : "Failed to load active campaigns."
+          : "Failed to load active campaigns.",
       );
     } finally {
       setLoading(false);
@@ -94,7 +102,7 @@ export default function ActiveCampaignScreen() {
     if (!deliverableUrl) {
       Alert.alert(
         "Deliverable required",
-        "Please enter the URL of your completed work."
+        "Please enter the URL of your completed work.",
       );
       return;
     }
@@ -115,12 +123,12 @@ export default function ActiveCampaignScreen() {
           deliverableUrl,
           creatorNotes: creatorNotes || undefined,
         },
-        token
+        token,
       );
 
       Alert.alert(
         "Deliverable submitted",
-        "Your work has been sent to the client for review."
+        "Your work has been sent to the client for review.",
       );
 
       await loadProjects();
@@ -131,7 +139,7 @@ export default function ActiveCampaignScreen() {
         "Submission failed",
         error instanceof Error
           ? error.message
-          : "Unable to submit deliverable."
+          : "Unable to submit deliverable.",
       );
     } finally {
       setSubmittingId(null);
@@ -141,7 +149,10 @@ export default function ActiveCampaignScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
 
         <Text style={styles.loadingText}>
           Loading active campaigns...
@@ -151,506 +162,892 @@ export default function ActiveCampaignScreen() {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <Pressable
-        onPress={() => router.back()}
-        style={styles.backButton}
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.back}>← Back</Text>
-      </Pressable>
+        {/* Header */}
 
-      <Text style={styles.title}>Active Campaigns</Text>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>
+              Active Campaigns
+            </Text>
 
-      <Text style={styles.subtitle}>
-        Complete your accepted campaigns and submit your work.
-      </Text>
-
-      {projects.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>
-            No active campaigns
-          </Text>
-
-          <Text style={styles.emptyText}>
-            When a brand accepts your application, your campaign
-            will appear here.
-          </Text>
+            <Text style={styles.subtitle}>
+              Complete your accepted campaigns and submit
+              your work.
+            </Text>
+          </View>
 
           <Pressable
-            style={styles.browseButton}
-            onPress={() => router.replace("/(creator)")}
+            style={({ pressed }) => [
+              styles.refreshButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={loadProjects}
           >
-            <Text style={styles.browseText}>
-              Find Campaigns
-            </Text>
+            <Text style={styles.refreshIcon}>↻</Text>
           </Pressable>
         </View>
-      ) : (
-        projects.map((project) => {
-          const acceptedApplication =
-            project.applications[0];
 
-          const hasSubmitted =
-            Boolean(project.deliverableUrl);
+        {/* Campaign count */}
 
-          const isSubmitting =
-            submittingId === project.id;
+        {projects.length > 0 && (
+          <View style={styles.countCard}>
+            <View>
+              <Text style={styles.countNumber}>
+                {projects.length}
+              </Text>
 
-          return (
-            <View
-              key={project.id}
-              style={styles.card}
+              <Text style={styles.countLabel}>
+                Active campaign
+                {projects.length !== 1 ? "s" : ""}
+              </Text>
+            </View>
+
+            <View style={styles.activeIndicator}>
+              <View style={styles.activeDot} />
+
+              <Text style={styles.activeText}>
+                IN PROGRESS
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Empty state */}
+
+        {projects.length === 0 ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Text style={styles.emptyIconText}>
+                ✓
+              </Text>
+            </View>
+
+            <Text style={styles.emptyTitle}>
+              No active campaigns
+            </Text>
+
+            <Text style={styles.emptyText}>
+              When a brand accepts your application, your
+              campaign will appear here.
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.browseButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.replace("/(creator)")}
             >
-              {/* Header */}
-              <View style={styles.headerRow}>
-                <View style={styles.headerContent}>
-                  <Text style={styles.projectTitle}>
-                    {project.title}
-                  </Text>
-
-                  <Text style={styles.client}>
-                    {project.client.brandProfile
-                      ?.companyName ||
-                      project.client.name}
-                  </Text>
-                </View>
-
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>
-                    IN PROGRESS
-                  </Text>
-                </View>
-              </View>
-
-              {/* Campaign details */}
-              <Text style={styles.sectionLabel}>
-                CAMPAIGN
+              <Text style={styles.browseText}>
+                Find Campaigns
               </Text>
 
-              <Text style={styles.description}>
-                {project.description}
+              <Text style={styles.browseArrow}>
+                →
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                Your Campaigns
               </Text>
 
-              <View style={styles.detailsRow}>
-                {project.platform && (
-                  <View style={styles.detailBox}>
-                    <Text style={styles.detailLabel}>
-                      Platform
-                    </Text>
+              <Text style={styles.sectionSubtitle}>
+                Complete the work and submit it for client
+                review.
+              </Text>
+            </View>
 
-                    <Text style={styles.detailValue}>
-                      {project.platform}
-                    </Text>
+            {projects.map((project) => {
+              const acceptedApplication =
+                project.applications[0];
+
+              const hasSubmitted =
+                Boolean(project.deliverableUrl);
+
+              const isSubmitting =
+                submittingId === project.id;
+
+              return (
+                <View
+                  key={project.id}
+                  style={[
+                    styles.card,
+                    hasSubmitted &&
+                      styles.submittedCard,
+                  ]}
+                >
+                  {/* Campaign header */}
+
+                  <View style={styles.cardHeader}>
+                    <View style={styles.brandAvatar}>
+                      <Text style={styles.brandAvatarText}>
+                        {(
+                          project.client.brandProfile
+                            ?.companyName ||
+                          project.client.name ||
+                          "B"
+                        )
+                          .charAt(0)
+                          .toUpperCase()}
+                      </Text>
+                    </View>
+
+                    <View style={styles.headerContent}>
+                      <Text
+                        style={styles.projectTitle}
+                        numberOfLines={2}
+                      >
+                        {project.title}
+                      </Text>
+
+                      <Text style={styles.client}>
+                        {project.client.brandProfile
+                          ?.companyName ||
+                          project.client.name}
+                      </Text>
+                    </View>
+
+                    <View style={styles.statusBadge}>
+                      <View style={styles.statusDot} />
+
+                      <Text style={styles.statusText}>
+                        ACTIVE
+                      </Text>
+                    </View>
                   </View>
-                )}
 
-                {project.contentType && (
-                  <View style={styles.detailBox}>
-                    <Text style={styles.detailLabel}>
-                      Content
-                    </Text>
+                  {/* Campaign description */}
 
-                    <Text style={styles.detailValue}>
-                      {project.contentType}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {project.niche && (
-                <View style={styles.detail}>
-                  <Text style={styles.detailLabel}>
-                    Niche
-                  </Text>
-
-                  <Text style={styles.detailValue}>
-                    {project.niche}
-                  </Text>
-                </View>
-              )}
-
-              {project.deliverables && (
-                <View style={styles.requirementsBox}>
                   <Text style={styles.sectionLabel}>
-                    REQUIRED DELIVERABLES
+                    CAMPAIGN
                   </Text>
 
-                  <Text style={styles.requirements}>
-                    {project.deliverables}
-                  </Text>
-                </View>
-              )}
-
-              {/* Price */}
-              {acceptedApplication && (
-                <View style={styles.priceBox}>
-                  <Text style={styles.detailLabel}>
-                    Agreed price
+                  <Text style={styles.description}>
+                    {project.description}
                   </Text>
 
-                  <Text style={styles.price}>
-                    {acceptedApplication.proposedPrice
-                      ? `₹${acceptedApplication.proposedPrice.toLocaleString()}`
-                      : "Not specified"}
-                  </Text>
-                </View>
-              )}
+                  {/* Platform / content */}
 
-              {/* Deadline */}
-              {project.deadline && (
-                <View style={styles.deadlineBox}>
-                  <Text style={styles.detailLabel}>
-                    Deadline
-                  </Text>
+                  {(project.platform ||
+                    project.contentType) && (
+                    <View style={styles.detailsRow}>
+                      {project.platform && (
+                        <View style={styles.detailBox}>
+                          <Text style={styles.detailLabel}>
+                            PLATFORM
+                          </Text>
 
-                  <Text style={styles.deadline}>
-                    {new Date(
-                      project.deadline
-                    ).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </Text>
-                </View>
-              )}
+                          <Text style={styles.detailValue}>
+                            {project.platform}
+                          </Text>
+                        </View>
+                      )}
 
-              {/* Existing submission */}
-              {hasSubmitted ? (
-                <View style={styles.submittedBox}>
-                  <Text style={styles.submittedTitle}>
-                    ✓ Deliverable submitted
-                  </Text>
+                      {project.contentType && (
+                        <View style={styles.detailBox}>
+                          <Text style={styles.detailLabel}>
+                            CONTENT
+                          </Text>
 
-                  <Text style={styles.submittedUrl}>
-                    {project.deliverableUrl}
-                  </Text>
-
-                  {project.creatorNotes && (
-                    <Text style={styles.submittedNotes}>
-                      {project.creatorNotes}
-                    </Text>
+                          <Text style={styles.detailValue}>
+                            {project.contentType}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   )}
 
-                  <Text style={styles.waitingText}>
-                    Waiting for the client to review your work.
-                  </Text>
+                  {/* Niche */}
+
+                  {project.niche && (
+                    <View style={styles.detail}>
+                      <Text style={styles.detailLabel}>
+                        NICHE
+                      </Text>
+
+                      <Text style={styles.detailValue}>
+                        {project.niche}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Deliverables */}
+
+                  {project.deliverables && (
+                    <View style={styles.requirementsBox}>
+                      <Text style={styles.sectionLabel}>
+                        REQUIRED DELIVERABLES
+                      </Text>
+
+                      <Text style={styles.requirements}>
+                        {project.deliverables}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Financial information */}
+
+                  <View style={styles.financeRow}>
+                    <View style={styles.financeBox}>
+                      <Text style={styles.detailLabel}>
+                        AGREED PRICE
+                      </Text>
+
+                      <Text style={styles.financeValue}>
+                        {acceptedApplication?.proposedPrice
+                          ? `₹${acceptedApplication.proposedPrice.toLocaleString()}`
+                          : "Not specified"}
+                      </Text>
+                    </View>
+
+                    <View style={styles.financeBox}>
+                      <Text style={styles.detailLabel}>
+                        DEADLINE
+                      </Text>
+
+                      <Text style={styles.financeValue}>
+                        {project.deadline
+                          ? new Date(
+                              project.deadline,
+                            ).toLocaleDateString(
+                              "en-IN",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              },
+                            )
+                          : "No deadline"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Submission */}
+
+                  {hasSubmitted ? (
+                    <View style={styles.submittedBox}>
+                      <View style={styles.submittedHeader}>
+                        <View style={styles.submittedIcon}>
+                          <Text
+                            style={
+                              styles.submittedIconText
+                            }
+                          >
+                            ✓
+                          </Text>
+                        </View>
+
+                        <View>
+                          <Text
+                            style={
+                              styles.submittedTitle
+                            }
+                          >
+                            Deliverable submitted
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.submittedSubtitle
+                            }
+                          >
+                            Waiting for client review
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text
+                        style={styles.submittedUrl}
+                        numberOfLines={2}
+                      >
+                        {project.deliverableUrl}
+                      </Text>
+
+                      {project.creatorNotes && (
+                        <View style={styles.notesBox}>
+                          <Text style={styles.notesLabel}>
+                            YOUR NOTES
+                          </Text>
+
+                          <Text style={styles.submittedNotes}>
+                            {project.creatorNotes}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.submitSection}>
+                      <Text style={styles.sectionTitle}>
+                        Submit your work
+                      </Text>
+
+                      <Text style={styles.submitSubtitle}>
+                        Add the link to your completed work
+                        for the client to review.
+                      </Text>
+
+                      <Text style={styles.inputLabel}>
+                        DELIVERABLE URL
+                      </Text>
+
+                      <TextInput
+                        style={styles.input}
+                        placeholder="https://drive.google.com/..."
+                        placeholderTextColor={
+                          colors.mutedText
+                        }
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="url"
+                        value={urls[project.id] || ""}
+                        onChangeText={(value) =>
+                          setUrls((previous) => ({
+                            ...previous,
+                            [project.id]: value,
+                          }))
+                        }
+                      />
+
+                      <Text style={styles.inputLabel}>
+                        NOTES
+                      </Text>
+
+                      <TextInput
+                        style={[
+                          styles.input,
+                          styles.textArea,
+                        ]}
+                        placeholder="Tell the client anything they should know..."
+                        placeholderTextColor={
+                          colors.mutedText
+                        }
+                        multiline
+                        textAlignVertical="top"
+                        value={notes[project.id] || ""}
+                        onChangeText={(value) =>
+                          setNotes((previous) => ({
+                            ...previous,
+                            [project.id]: value,
+                          }))
+                        }
+                      />
+
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.submitButton,
+                          isSubmitting &&
+                            styles.disabledButton,
+                          pressed &&
+                            !isSubmitting &&
+                            styles.buttonPressed,
+                        ]}
+                        disabled={isSubmitting}
+                        onPress={() =>
+                          handleSubmit(project.id)
+                        }
+                      >
+                        {isSubmitting ? (
+                          <ActivityIndicator
+                            color={colors.card}
+                          />
+                        ) : (
+                          <>
+                            <Text
+                              style={styles.submitText}
+                            >
+                              Submit Deliverable
+                            </Text>
+
+                            <Text
+                              style={styles.submitArrow}
+                            >
+                              →
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
-              ) : (
-                <>
-                  {/* Submit deliverable */}
-                  <Text style={styles.sectionTitle}>
-                    Submit your work
-                  </Text>
-
-                  <Text style={styles.inputLabel}>
-                    Deliverable URL
-                  </Text>
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="https://drive.google.com/..."
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    value={urls[project.id] || ""}
-                    onChangeText={(value) =>
-                      setUrls((previous) => ({
-                        ...previous,
-                        [project.id]: value,
-                      }))
-                    }
-                  />
-
-                  <Text style={styles.inputLabel}>
-                    Notes
-                  </Text>
-
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.textArea,
-                    ]}
-                    placeholder="Tell the client anything they should know..."
-                    multiline
-                    textAlignVertical="top"
-                    value={notes[project.id] || ""}
-                    onChangeText={(value) =>
-                      setNotes((previous) => ({
-                        ...previous,
-                        [project.id]: value,
-                      }))
-                    }
-                  />
-
-                  <Pressable
-                    style={[
-                      styles.submitButton,
-                      isSubmitting &&
-                        styles.disabledButton,
-                    ]}
-                    disabled={isSubmitting}
-                    onPress={() =>{
-                        console.log("SUBMIT BUTTON CLICKED", project.id);
-                      handleSubmit(project.id)
-                    }
-                    }
-                  >
-                    <Text style={styles.submitText}>
-                      {isSubmitting
-                        ? "Submitting..."
-                        : "Submit Deliverable"}
-                    </Text>
-                  </Pressable>
-                </>
-              )}
-            </View>
-          );
-        })
-      )}
-    </ScrollView>
+              );
+            })}
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+
+  scroll: {
+    flex: 1,
+  },
+
   container: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 55,
-    paddingBottom: 60,
-    backgroundColor: "#fff",
+    paddingHorizontal: spacing.xl,
+    paddingTop: 56,
+    paddingBottom: 32,
   },
 
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
   },
 
   loadingText: {
-    marginTop: 10,
-    color: "#777",
+    marginTop: spacing.md,
+    color: colors.secondaryText,
+    fontSize: 14,
   },
 
-  backButton: {
-    marginBottom: 20,
-  },
-
-  back: {
-    color: "#555",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#111",
-  },
-
-  subtitle: {
-    marginTop: 7,
-    marginBottom: 28,
-    color: "#777",
-  },
-
-  empty: {
-    alignItems: "center",
-    paddingTop: 70,
-  },
-
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    maxWidth: 400,
-    textAlign: "center",
-    lineHeight: 21,
-    color: "#777",
-  },
-
-  browseButton: {
-    marginTop: 24,
-    backgroundColor: "#111",
-    paddingHorizontal: 24,
-    height: 50,
-    borderRadius: 12,
-    justifyContent: "center",
-  },
-
-  browseText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-
-  card: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 20,
-    backgroundColor: "#fff",
-  },
-
-  headerRow: {
+  header: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
+    justifyContent: "space-between",
   },
 
   headerContent: {
     flex: 1,
   },
 
-  projectTitle: {
-    fontSize: 21,
+  title: {
+    color: colors.text,
+    ...typography.screenTitle,
+  },
+
+  subtitle: {
+    marginTop: spacing.sm,
+    color: colors.secondaryText,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  refreshButton: {
+    width: 44,
+    height: 44,
+    marginLeft: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  refreshIcon: {
+    color: colors.primary,
+    fontSize: 23,
+    fontWeight: "600",
+  },
+
+  countCard: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  countNumber: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: colors.text,
+  },
+
+  countLabel: {
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.secondaryText,
+  },
+
+  activeIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: "#EEECFF",
+  },
+
+  activeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radius.pill,
+    marginRight: spacing.sm,
+    backgroundColor: colors.primary,
+  },
+
+  activeText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+
+  sectionHeader: {
+    marginTop: spacing.xxl,
+    marginBottom: spacing.lg,
+  },
+
+  sectionTitle: {
+    color: colors.text,
+    ...typography.sectionTitle,
+  },
+
+  sectionSubtitle: {
+    marginTop: 4,
+    color: colors.secondaryText,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  empty: {
+    alignItems: "center",
+    paddingTop: 55,
+    paddingHorizontal: spacing.xl,
+  },
+
+  emptyIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.pill,
+    backgroundColor: "#EEECFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  emptyIconText: {
+    color: colors.primary,
+    fontSize: 24,
+    fontWeight: "800",
+  },
+
+  emptyTitle: {
+    marginTop: spacing.lg,
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+
+  emptyText: {
+    marginTop: spacing.sm,
+    maxWidth: 360,
+    color: colors.secondaryText,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+
+  browseButton: {
+    height: 48,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.button,
+    backgroundColor: colors.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  browseText: {
+    color: colors.card,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#111",
+  },
+
+  browseArrow: {
+    marginLeft: spacing.sm,
+    color: colors.card,
+    fontSize: 18,
+  },
+
+  card: {
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  submittedCard: {
+    borderColor: "#CFE7D5",
+  },
+
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  },
+
+  brandAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: "#EEECFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  brandAvatarText: {
+    color: colors.primary,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+
+  projectTitle: {
+    color: colors.text,
+    ...typography.cardTitle,
   },
 
   client: {
-    marginTop: 5,
-    color: "#777",
-    fontSize: 14,
+    marginTop: 4,
+    color: colors.secondaryText,
+    fontSize: 13,
   },
 
   statusBadge: {
-    backgroundColor: "#f1f1f1",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: "#EEECFF",
+  },
+
+  statusDot: {
+    width: 6,
+    height: 6,
+    marginRight: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
 
   statusText: {
-    fontSize: 10,
+    color: colors.primary,
+    fontSize: 9,
     fontWeight: "800",
-    color: "#555",
+    letterSpacing: 0.4,
   },
 
   sectionLabel: {
-    marginTop: 20,
-    fontSize: 11,
+    marginTop: spacing.xl,
+    color: colors.mutedText,
+    fontSize: 10,
     fontWeight: "800",
-    color: "#888",
-    letterSpacing: 0.5,
+    letterSpacing: 0.7,
   },
 
   description: {
-    marginTop: 8,
-    lineHeight: 22,
-    color: "#444",
+    marginTop: spacing.sm,
+    color: "#4B4B4B",
+    fontSize: 14,
+    lineHeight: 21,
   },
 
   detailsRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 16,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
 
   detailBox: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    padding: 13,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#F6F6F7",
   },
 
   detail: {
-    marginTop: 14,
+    marginTop: spacing.md,
   },
 
   detailLabel: {
-    fontSize: 11,
-    color: "#888",
+    color: colors.mutedText,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
 
   detailValue: {
-    marginTop: 4,
+    marginTop: 5,
+    color: colors.text,
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "700",
   },
 
   requirementsBox: {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#fafafa",
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#FAFAFA",
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
 
   requirements: {
-    marginTop: 8,
+    marginTop: spacing.sm,
+    color: "#4B4B4B",
+    fontSize: 14,
     lineHeight: 21,
-    color: "#444",
   },
 
-  priceBox: {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#f5f5f5",
+  financeRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
 
-  price: {
-    marginTop: 4,
+  financeBox: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#F6F6F7",
+  },
+
+  financeValue: {
+    marginTop: 5,
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  submittedBox: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.input,
+    backgroundColor: "#F0F9F2",
+  },
+
+  submittedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  submittedIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: "#DDF1E2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  submittedIconText: {
+    color: colors.success,
     fontSize: 18,
     fontWeight: "800",
-    color: "#111",
   },
 
-  deadlineBox: {
-    marginTop: 14,
-  },
-
-  deadline: {
-    marginTop: 4,
+  submittedTitle: {
+    marginLeft: spacing.sm,
+    color: colors.success,
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "800",
   },
 
-  sectionTitle: {
-    marginTop: 28,
-    marginBottom: 14,
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#111",
+  submittedSubtitle: {
+    marginLeft: spacing.sm,
+    marginTop: 2,
+    color: colors.secondaryText,
+    fontSize: 12,
+  },
+
+  submittedUrl: {
+    marginTop: spacing.md,
+    color: "#405060",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+
+  notesBox: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "#D9EBDD",
+  },
+
+  notesLabel: {
+    color: colors.mutedText,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+
+  submittedNotes: {
+    marginTop: 4,
+    color: "#405060",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+
+  submitSection: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+
+  submitSubtitle: {
+    marginTop: 4,
+    color: colors.secondaryText,
+    fontSize: 13,
+    lineHeight: 19,
   },
 
   inputLabel: {
-    marginTop: 14,
-    marginBottom: 7,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#333",
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    color: colors.mutedText,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.6,
   },
 
   input: {
     height: 52,
+    paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    paddingHorizontal: 15,
+    borderColor: colors.border,
+    borderRadius: radius.input,
+    backgroundColor: colors.card,
+    color: colors.text,
     fontSize: 14,
-    color: "#111",
   },
 
   textArea: {
-    height: 120,
-    paddingTop: 14,
+    height: 110,
+    paddingTop: spacing.md,
   },
 
   submitButton: {
-    height: 54,
-    marginTop: 22,
-    borderRadius: 13,
-    backgroundColor: "#111",
+    height: 52,
+    marginTop: spacing.xl,
+    borderRadius: radius.button,
+    backgroundColor: colors.primary,
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -660,39 +1057,18 @@ const styles = StyleSheet.create({
   },
 
   submitText: {
-    color: "#fff",
+    color: colors.card,
     fontSize: 15,
     fontWeight: "700",
   },
 
-  submittedBox: {
-    marginTop: 24,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: "#f1f8f1",
+  submitArrow: {
+    marginLeft: spacing.sm,
+    color: colors.card,
+    fontSize: 19,
   },
 
-  submittedTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "green",
-  },
-
-  submittedUrl: {
-    marginTop: 8,
-    color: "#333",
-    lineHeight: 20,
-  },
-
-  submittedNotes: {
-    marginTop: 10,
-    color: "#555",
-    lineHeight: 20,
-  },
-
-  waitingText: {
-    marginTop: 12,
-    color: "#666",
-    fontSize: 13,
+  buttonPressed: {
+    opacity: 0.85,
   },
 });

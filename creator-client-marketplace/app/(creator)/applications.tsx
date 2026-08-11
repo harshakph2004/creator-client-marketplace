@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +11,12 @@ import { useEffect, useState } from "react";
 
 import { getCreatorApplications } from "../../services/api";
 import { getToken } from "../../services/auth";
+import {
+  Colors,
+  radius,
+  spacing,
+  typography,
+} from "../../constants/theme";
 
 type Application = {
   id: number;
@@ -29,6 +34,8 @@ type Application = {
     status: string;
   };
 };
+
+const colors = Colors.light;
 
 export default function CreatorApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -48,11 +55,6 @@ export default function CreatorApplications() {
       setApplications(result.applications || []);
     } catch (error) {
       console.error("CREATOR APPLICATIONS ERROR:", error);
-
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to load applications.",
-      );
     } finally {
       setLoading(false);
     }
@@ -62,16 +64,6 @@ export default function CreatorApplications() {
     loadApplications();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-
-        <Text style={styles.loadingText}>Loading your applications...</Text>
-      </View>
-    );
-  }
-
   const pendingCount = applications.filter(
     (application) => application.status === "PENDING",
   ).length;
@@ -80,362 +72,537 @@ export default function CreatorApplications() {
     (application) => application.status === "ACCEPTED",
   ).length;
 
-  return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <Text style={styles.back}>← Back</Text>
-      </Pressable>
+  const rejectedCount = applications.filter(
+    (application) => application.status === "REJECTED",
+  ).length;
 
-      <View style={styles.header}>
-        <Text style={styles.title}>My Applications</Text>
+  const getStatusStyle = (status: Application["status"]) => {
+    switch (status) {
+      case "ACCEPTED":
+        return {
+          badge: styles.acceptedBadge,
+          text: styles.acceptedText,
+        };
 
-        <Pressable onPress={loadApplications} style={styles.refreshButton}>
-          <Text style={styles.refreshText}>Refresh</Text>
-        </Pressable>
+      case "REJECTED":
+        return {
+          badge: styles.rejectedBadge,
+          text: styles.rejectedText,
+        };
+
+      default:
+        return {
+          badge: styles.pendingBadge,
+          text: styles.pendingText,
+        };
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
+
+        <Text style={styles.loadingText}>
+          Loading your applications...
+        </Text>
       </View>
+    );
+  }
 
-      <Text style={styles.subtitle}>
-        Track your applications and campaign decisions.
-      </Text>
+  return (
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
 
-      {applications.length > 0 && (
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryNumber}>{applications.length}</Text>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>
+              My Applications
+            </Text>
 
-            <Text style={styles.summaryLabel}>Total</Text>
+            <Text style={styles.subtitle}>
+              Track your proposals and campaign decisions.
+            </Text>
           </View>
-
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryNumber}>{pendingCount}</Text>
-
-            <Text style={styles.summaryLabel}>Pending</Text>
-          </View>
-
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryNumber}>{acceptedCount}</Text>
-
-            <Text style={styles.summaryLabel}>Accepted</Text>
-          </View>
-        </View>
-      )}
-
-      {applications.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>No applications yet</Text>
-
-          <Text style={styles.emptyText}>
-            Find a campaign and send your first proposal.
-          </Text>
 
           <Pressable
-            style={styles.browseButton}
-            onPress={() => router.replace("/(creator)")}
+            style={({ pressed }) => [
+              styles.refreshButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={loadApplications}
           >
-            <Text style={styles.browseText}>Browse Campaigns</Text>
+            <Text style={styles.refreshIcon}>↻</Text>
           </Pressable>
         </View>
-      ) : (
-        applications.map((application) => {
-          const isAccepted = application.status === "ACCEPTED";
 
-          const isRejected = application.status === "REJECTED";
+        {/* Summary */}
 
-          const isPending = application.status === "PENDING";
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryNumber}>
+              {applications.length}
+            </Text>
 
-          return (
-            <View
-              key={application.id}
-              style={[
-                styles.card,
-                isAccepted && styles.acceptedCard,
-                isRejected && styles.rejectedCard,
+            <Text style={styles.summaryLabel}>
+              Total
+            </Text>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryNumber}>
+              {pendingCount}
+            </Text>
+
+            <Text style={styles.summaryLabel}>
+              Pending
+            </Text>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryNumber}>
+              {acceptedCount}
+            </Text>
+
+            <Text style={styles.summaryLabel}>
+              Accepted
+            </Text>
+          </View>
+        </View>
+
+        {/* Applications section */}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Your Applications
+          </Text>
+
+          <Text style={styles.sectionSubtitle}>
+            Keep track of every campaign you applied to.
+          </Text>
+        </View>
+
+        {/* Empty state */}
+
+        {applications.length === 0 ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Text style={styles.emptyIconText}>
+                ▣
+              </Text>
+            </View>
+
+            <Text style={styles.emptyTitle}>
+              No applications yet
+            </Text>
+
+            <Text style={styles.emptyText}>
+              Find a campaign and send your first proposal.
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.browseButton,
+                pressed && styles.buttonPressed,
               ]}
+              onPress={() => router.replace("/(creator)")}
             >
-              {/* Campaign header */}
-              <View style={styles.cardHeader}>
-                <View style={styles.titleContainer}>
-                  <Text style={styles.projectTitle}>
-                    {application.project.title}
-                  </Text>
+              <Text style={styles.browseText}>
+                Browse Campaigns
+              </Text>
 
-                  <Text style={styles.appliedDate}>
-                    Applied{" "}
-                    {new Date(application.createdAt).toLocaleDateString(
-                      "en-IN",
-                      {
+              <Text style={styles.browseArrow}>
+                →
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          applications.map((application) => {
+            const isAccepted =
+              application.status === "ACCEPTED";
+
+            const isRejected =
+              application.status === "REJECTED";
+
+            const isPending =
+              application.status === "PENDING";
+
+            const statusStyle = getStatusStyle(
+              application.status,
+            );
+
+            return (
+              <View
+                key={application.id}
+                style={[
+                  styles.card,
+                  isAccepted && styles.acceptedCard,
+                ]}
+              >
+                {/* Campaign header */}
+
+                <View style={styles.cardHeader}>
+                  <View style={styles.titleContainer}>
+                    <Text
+                      style={styles.projectTitle}
+                      numberOfLines={2}
+                    >
+                      {application.project.title}
+                    </Text>
+
+                    <Text style={styles.appliedDate}>
+                      Applied{" "}
+                      {new Date(
+                        application.createdAt,
+                      ).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
-                      },
-                    )}
-                  </Text>
-                </View>
+                      })}
+                    </Text>
+                  </View>
 
-                <View
-                  style={[
-                    styles.statusBadge,
-                    isAccepted && styles.acceptedBadge,
-                    isRejected && styles.rejectedBadge,
-                  ]}
-                >
-                  <Text
+                  <View
                     style={[
-                      styles.statusText,
-                      isAccepted && styles.acceptedText,
-                      isRejected && styles.rejectedText,
+                      styles.statusBadge,
+                      statusStyle.badge,
                     ]}
                   >
-                    {application.status}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Accepted message */}
-              {isAccepted && (
-                <View style={styles.successBox}>
-                  <Text style={styles.successTitle}>🎉 You were selected!</Text>
-
-                  <Text style={styles.successText}>
-                    The brand accepted your application. This campaign is now in
-                    progress.
-                  </Text>
-                </View>
-              )}
-
-              {/* Rejected message */}
-              {isRejected && (
-                <View style={styles.rejectedBox}>
-                  <Text style={styles.rejectedMessage}>
-                    This application was not selected.
-                  </Text>
-                </View>
-              )}
-
-              {/* Campaign details */}
-              <View style={styles.detailsRow}>
-                <View style={styles.detailBox}>
-                  <Text style={styles.detailLabel}>Campaign budget</Text>
-
-                  <Text style={styles.detailValue}>
-                    {application.project.budget
-                      ? `₹${application.project.budget.toLocaleString()}`
-                      : "Negotiable"}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        statusStyle.text,
+                      ]}
+                    >
+                      {application.status}
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={styles.detailBox}>
-                  <Text style={styles.detailLabel}>Your price</Text>
+                {/* Accepted message */}
 
-                  <Text style={styles.detailValue}>
-                    {application.proposedPrice
-                      ? `₹${application.proposedPrice.toLocaleString()}`
-                      : "Not specified"}
-                  </Text>
+                {isAccepted && (
+                  <View style={styles.successBox}>
+                    <View style={styles.successIcon}>
+                      <Text style={styles.successIconText}>
+                        ✓
+                      </Text>
+                    </View>
+
+                    <View style={styles.successContent}>
+                      <Text style={styles.successTitle}>
+                        You were selected!
+                      </Text>
+
+                      <Text style={styles.successText}>
+                        The brand accepted your application.
+                        This campaign is now in progress.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Rejected message */}
+
+                {isRejected && (
+                  <View style={styles.rejectedBox}>
+                    <Text style={styles.rejectedMessage}>
+                      This application was not selected.
+                    </Text>
+                  </View>
+                )}
+
+                {/* Campaign financial details */}
+
+                <View style={styles.detailsRow}>
+                  <View style={styles.detailBox}>
+                    <Text style={styles.detailLabel}>
+                      CAMPAIGN BUDGET
+                    </Text>
+
+                    <Text style={styles.detailValue}>
+                      {application.project.budget
+                        ? `₹${application.project.budget.toLocaleString()}`
+                        : "Negotiable"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailBox}>
+                    <Text style={styles.detailLabel}>
+                      YOUR PRICE
+                    </Text>
+
+                    <Text style={styles.detailValue}>
+                      {application.proposedPrice
+                        ? `₹${application.proposedPrice.toLocaleString()}`
+                        : "Not specified"}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              {application.project.deadline && (
-                <View style={styles.deadlineRow}>
-                  <Text style={styles.detailLabel}>Campaign deadline</Text>
+                {/* Deadline */}
 
-                  <Text style={styles.deadline}>
-                    {new Date(application.project.deadline).toLocaleDateString(
-                      "en-IN",
-                      {
+                {application.project.deadline && (
+                  <View style={styles.deadlineRow}>
+                    <Text style={styles.detailLabel}>
+                      CAMPAIGN DEADLINE
+                    </Text>
+
+                    <Text style={styles.deadline}>
+                      {new Date(
+                        application.project.deadline,
+                      ).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
-                      },
-                    )}
+                      })}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Proposal */}
+
+                <Text style={styles.sectionLabel}>
+                  YOUR PROPOSAL
+                </Text>
+
+                <View style={styles.proposalBox}>
+                  <Text style={styles.proposal}>
+                    {application.proposal}
                   </Text>
                 </View>
-              )}
 
-              {/* Proposal */}
-              <Text style={styles.sectionLabel}>YOUR PROPOSAL</Text>
+                {/* Campaign status */}
 
-              <View style={styles.proposalBox}>
-                <Text style={styles.proposal}>{application.proposal}</Text>
+                <View style={styles.projectState}>
+                  <View>
+                    <Text style={styles.detailLabel}>
+                      CAMPAIGN STATUS
+                    </Text>
+
+                    <Text style={styles.projectStatus}>
+                      {application.project.status.replace(
+                        "_",
+                        " ",
+                      )}
+                    </Text>
+                  </View>
+
+                  {isPending && (
+                    <View style={styles.pendingDot} />
+                  )}
+                </View>
+
+                {/* Action */}
+
+                {isPending && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.viewButton,
+                      pressed && styles.buttonPressed,
+                    ]}
+                    onPress={() =>
+                      router.push({
+                        pathname:
+                          "/(creator)/project-details",
+                        params: {
+                          id: String(
+                            application.project.id,
+                          ),
+                        },
+                      })
+                    }
+                  >
+                    <Text style={styles.viewButtonText}>
+                      View Campaign
+                    </Text>
+
+                    <Text style={styles.viewArrow}>
+                      →
+                    </Text>
+                  </Pressable>
+                )}
+
+                {isAccepted && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.viewButton,
+                      pressed && styles.buttonPressed,
+                    ]}
+                    onPress={() =>
+                      router.push(
+                        "/(creator)/active-campaign",
+                      )
+                    }
+                  >
+                    <Text style={styles.viewButtonText}>
+                      View Active Campaign
+                    </Text>
+
+                    <Text style={styles.viewArrow}>
+                      →
+                    </Text>
+                  </Pressable>
+                )}
               </View>
+            );
+          })
+        )}
 
-              {/* Current campaign state */}
-              <View style={styles.projectState}>
-                <Text style={styles.detailLabel}>Campaign status</Text>
+        {/* Rejected count */}
 
-                <Text style={styles.projectStatus}>
-                  {application.project.status.replace("_", " ")}
-                </Text>
-              </View>
-
-              {/* Action */}
-              {isPending && (
-                <Pressable
-                  style={styles.viewButton}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(creator)/project-details",
-                      params: {
-                        id: String(application.project.id),
-                      },
-                    })
-                  }
-                >
-                  <Text style={styles.viewButtonText}>View Campaign →</Text>
-                </Pressable>
-              )}
-            </View>
-          );
-        })
-      )}
-    </ScrollView>
+        {applications.length > 0 &&
+          rejectedCount > 0 && (
+            <Text style={styles.rejectedSummary}>
+              {rejectedCount} rejected application
+              {rejectedCount !== 1 ? "s" : ""}
+            </Text>
+          )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+
+  scroll: {
+    flex: 1,
+  },
+
   container: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 55,
-    paddingBottom: 60,
-    backgroundColor: "#fff",
+    paddingHorizontal: spacing.xl,
+    paddingTop: 56,
+    paddingBottom: 32,
   },
 
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
   },
 
   loadingText: {
-    marginTop: 10,
-    color: "#777",
-  },
-
-  backButton: {
-    marginBottom: 20,
-  },
-
-  back: {
-    color: "#555",
-    fontSize: 15,
-    fontWeight: "600",
+    marginTop: spacing.md,
+    color: colors.secondaryText,
+    fontSize: 14,
   },
 
   header: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
+  },
+
+  headerContent: {
+    flex: 1,
   },
 
   title: {
-    flex: 1,
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#111",
-  },
-
-  refreshButton: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-
-  refreshText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#444",
+    color: colors.text,
+    ...typography.screenTitle,
   },
 
   subtitle: {
-    marginTop: 7,
-    color: "#777",
-    marginBottom: 25,
+    marginTop: spacing.sm,
+    color: colors.secondaryText,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  refreshButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  refreshIcon: {
+    color: colors.primary,
+    fontSize: 23,
+    fontWeight: "600",
   },
 
   summaryRow: {
     flexDirection: "row",
-    gap: 10,
-    marginBottom: 25,
+    gap: spacing.sm,
+    marginTop: spacing.xl,
   },
 
-  summaryBox: {
+  summaryCard: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 14,
-    padding: 14,
+    minHeight: 82,
+    padding: spacing.md,
+    borderRadius: radius.card,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 
   summaryNumber: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "800",
-    color: "#111",
+    color: colors.text,
   },
 
   summaryLabel: {
-    marginTop: 3,
+    marginTop: 4,
+    color: colors.secondaryText,
     fontSize: 12,
-    color: "#777",
+    fontWeight: "600",
   },
 
-  empty: {
-    alignItems: "center",
-    paddingTop: 70,
+  sectionHeader: {
+    marginTop: spacing.xxl,
+    marginBottom: spacing.lg,
   },
 
-  emptyTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#111",
+  sectionTitle: {
+    color: colors.text,
+    ...typography.sectionTitle,
   },
 
-  emptyText: {
-    marginTop: 8,
-    color: "#777",
-    textAlign: "center",
-  },
-
-  browseButton: {
-    marginTop: 24,
-    backgroundColor: "#111",
-    paddingHorizontal: 24,
-    height: 50,
-    borderRadius: 12,
-    justifyContent: "center",
-  },
-
-  browseText: {
-    color: "#fff",
-    fontWeight: "700",
+  sectionSubtitle: {
+    marginTop: 4,
+    color: colors.secondaryText,
+    fontSize: 13,
+    lineHeight: 18,
   },
 
   card: {
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 18,
-    backgroundColor: "#fff",
+    borderColor: colors.border,
   },
 
   acceptedCard: {
-    borderColor: "#cfe5d1",
-  },
-
-  rejectedCard: {
-    borderColor: "#e5e5e5",
+    borderColor: "#CFE7D5",
   },
 
   cardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
+    gap: spacing.md,
   },
 
   titleContainer: {
@@ -443,159 +610,281 @@ const styles = StyleSheet.create({
   },
 
   projectTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#111",
+    color: colors.text,
+    ...typography.cardTitle,
   },
 
   appliedDate: {
     marginTop: 5,
+    color: colors.mutedText,
     fontSize: 12,
-    color: "#888",
   },
 
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: "#f2f2f2",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+  },
+
+  pendingBadge: {
+    backgroundColor: "#EEECFF",
   },
 
   acceptedBadge: {
-    backgroundColor: "#eaf6eb",
+    backgroundColor: "#EAF7EE",
   },
 
   rejectedBadge: {
-    backgroundColor: "#f3f3f3",
+    backgroundColor: "#F1F1F2",
   },
 
   statusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
-    color: "#777",
+    letterSpacing: 0.4,
+  },
+
+  pendingText: {
+    color: colors.primary,
   },
 
   acceptedText: {
-    color: "green",
+    color: colors.success,
   },
 
   rejectedText: {
-    color: "#777",
+    color: colors.secondaryText,
   },
 
   successBox: {
-    marginTop: 18,
-    padding: 14,
-    borderRadius: 13,
-    backgroundColor: "#f1f8f1",
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#F0F9F2",
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+
+  successIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.pill,
+    backgroundColor: "#DDF1E2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  successIconText: {
+    color: colors.success,
+    fontSize: 17,
+    fontWeight: "800",
+  },
+
+  successContent: {
+    flex: 1,
+    marginLeft: spacing.sm,
   },
 
   successTitle: {
+    color: colors.success,
+    fontSize: 14,
     fontWeight: "800",
-    color: "green",
   },
 
   successText: {
-    marginTop: 5,
-    lineHeight: 20,
+    marginTop: 4,
     color: "#456",
+    fontSize: 13,
+    lineHeight: 19,
   },
 
   rejectedBox: {
-    marginTop: 18,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#f7f7f7",
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#F5F5F5",
   },
 
   rejectedMessage: {
-    color: "#777",
+    color: colors.secondaryText,
     fontSize: 13,
   },
 
   detailsRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 18,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
 
   detailBox: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    padding: 13,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#F6F6F7",
   },
 
   detailLabel: {
-    fontSize: 11,
-    color: "#888",
-  },
-
-  detailValue: {
-    marginTop: 4,
-    fontSize: 15,
+    color: colors.mutedText,
+    fontSize: 10,
     fontWeight: "700",
-    color: "#111",
-  },
-
-  deadlineRow: {
-    marginTop: 14,
-  },
-
-  deadline: {
-    marginTop: 3,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-  },
-
-  sectionLabel: {
-    marginTop: 20,
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#888",
     letterSpacing: 0.5,
   },
 
+  detailValue: {
+    marginTop: 5,
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  deadlineRow: {
+    marginTop: spacing.md,
+  },
+
+  deadline: {
+    marginTop: 4,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  sectionLabel: {
+    marginTop: spacing.xl,
+    color: colors.mutedText,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.7,
+  },
+
   proposalBox: {
-    marginTop: 8,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#fafafa",
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#FAFAFA",
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
 
   proposal: {
+    color: "#4B4B4B",
+    fontSize: 14,
     lineHeight: 21,
-    color: "#444",
   },
 
   projectState: {
-    marginTop: 16,
-    paddingTop: 14,
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   projectStatus: {
     marginTop: 4,
+    color: colors.text,
     fontSize: 13,
     fontWeight: "700",
-    color: "#333",
     textTransform: "capitalize",
+  },
+
+  pendingDot: {
+    width: 9,
+    height: 9,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
 
   viewButton: {
     height: 48,
-    marginTop: 18,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
+    marginTop: spacing.lg,
+    borderRadius: radius.button,
+    backgroundColor: colors.primary,
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
 
   viewButtonText: {
+    color: colors.card,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#333",
+  },
+
+  viewArrow: {
+    marginLeft: spacing.sm,
+    color: colors.card,
+    fontSize: 18,
+  },
+
+  buttonPressed: {
+    opacity: 0.85,
+  },
+
+  empty: {
+    alignItems: "center",
+    paddingTop: 55,
+    paddingHorizontal: spacing.xl,
+  },
+
+  emptyIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.pill,
+    backgroundColor: "#EEECFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  emptyIconText: {
+    color: colors.primary,
+    fontSize: 22,
+  },
+
+  emptyTitle: {
+    marginTop: spacing.lg,
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: "800",
+  },
+
+  emptyText: {
+    marginTop: spacing.sm,
+    color: colors.secondaryText,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+
+  browseButton: {
+    height: 48,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.button,
+    backgroundColor: colors.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  browseText: {
+    color: colors.card,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  browseArrow: {
+    marginLeft: spacing.sm,
+    color: colors.card,
+    fontSize: 18,
+  },
+
+  rejectedSummary: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+    color: colors.mutedText,
+    fontSize: 12,
+    textAlign: "center",
   },
 });
