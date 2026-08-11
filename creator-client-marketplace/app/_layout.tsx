@@ -24,7 +24,7 @@ export default function RootLayout() {
 
         <Stack.Screen name="(creator)" options={{ headerShown: false }} />
         <Stack.Screen name="(client)" options={{ headerShown: false }} />
-
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
           options={{
