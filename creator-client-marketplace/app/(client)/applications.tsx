@@ -1,12 +1,12 @@
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -16,6 +16,13 @@ import {
   updateApplicationStatus,
 } from "../../services/api";
 import { getToken } from "../../services/auth";
+
+import {
+  Colors,
+  radius,
+  spacing,
+  typography,
+} from "../../constants/theme";
 
 type Application = {
   id: number;
@@ -49,11 +56,16 @@ type Application = {
   };
 };
 
+const colors = Colors.light;
+
 export default function ApplicationsScreen() {
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [applications, setApplications] = useState<
+    Application[]
+  >([]);
 
   const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] =
+    useState<number | null>(null);
 
   const loadApplications = async () => {
     try {
@@ -64,15 +76,21 @@ export default function ApplicationsScreen() {
         return;
       }
 
-      const result = await getClientApplications(token);
+      const result =
+        await getClientApplications(token);
 
       setApplications(result.applications || []);
     } catch (error) {
-      console.error("APPLICATIONS ERROR:", error);
+      console.error(
+        "APPLICATIONS ERROR:",
+        error,
+      );
 
       Alert.alert(
         "Error",
-        error instanceof Error ? error.message : "Failed to load applications.",
+        error instanceof Error
+          ? error.message
+          : "Failed to load applications.",
       );
     } finally {
       setLoading(false);
@@ -97,9 +115,17 @@ export default function ApplicationsScreen() {
 
       setUpdatingId(applicationId);
 
-      console.log("UPDATING APPLICATION:", applicationId, status);
+      console.log(
+        "UPDATING APPLICATION:",
+        applicationId,
+        status,
+      );
 
-      await updateApplicationStatus(applicationId, status, token);
+      await updateApplicationStatus(
+        applicationId,
+        status,
+        token,
+      );
 
       await loadApplications();
 
@@ -118,7 +144,10 @@ export default function ApplicationsScreen() {
         );
       }
     } catch (error) {
-      console.error("UPDATE APPLICATION ERROR:", error);
+      console.error(
+        "UPDATE APPLICATION ERROR:",
+        error,
+      );
 
       if (Platform.OS === "web") {
         window.alert(
@@ -138,13 +167,16 @@ export default function ApplicationsScreen() {
       setUpdatingId(null);
     }
   };
+
   const handleDecision = async (
     applicationId: number,
     status: "ACCEPTED" | "REJECTED",
   ) => {
-    const action = status === "ACCEPTED" ? "accept" : "reject";
+    const action =
+      status === "ACCEPTED"
+        ? "accept"
+        : "reject";
 
-    // Web confirmation
     if (Platform.OS === "web") {
       const confirmed = window.confirm(
         `Are you sure you want to ${action} this application?`,
@@ -154,13 +186,20 @@ export default function ApplicationsScreen() {
         return;
       }
 
-      await processDecision(applicationId, status);
+      await processDecision(
+        applicationId,
+        status,
+      );
+
       return;
     }
 
-    // Android / iOS confirmation
     Alert.alert(
-      `${status === "ACCEPTED" ? "Accept" : "Reject"} application?`,
+      `${
+        status === "ACCEPTED"
+          ? "Accept"
+          : "Reject"
+      } application?`,
       `Are you sure you want to ${action} this application?`,
       [
         {
@@ -168,9 +207,19 @@ export default function ApplicationsScreen() {
           style: "cancel",
         },
         {
-          text: status === "ACCEPTED" ? "Accept" : "Reject",
-          style: status === "REJECTED" ? "destructive" : "default",
-          onPress: () => processDecision(applicationId, status),
+          text:
+            status === "ACCEPTED"
+              ? "Accept"
+              : "Reject",
+          style:
+            status === "REJECTED"
+              ? "destructive"
+              : "default",
+          onPress: () =>
+            processDecision(
+              applicationId,
+              status,
+            ),
         },
       ],
     );
@@ -179,440 +228,999 @@ export default function ApplicationsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
 
-        <Text style={styles.loadingText}>Loading applications...</Text>
+        <Text style={styles.loadingText}>
+          Loading applications...
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>← Back</Text>
-      </Pressable>
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back */}
 
-      <Text style={styles.title}>Applications</Text>
+        <Pressable
+          style={styles.back}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backArrow}>←</Text>
 
-      <Text style={styles.subtitle}>
-        Review creators who applied to your campaigns.
-      </Text>
+          <Text style={styles.backText}>
+            Dashboard
+          </Text>
+        </Pressable>
 
-      {applications.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>No applications yet</Text>
+        {/* Header */}
 
-          <Text style={styles.emptyText}>
-            Applications from creators will appear here.
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            Applications
+          </Text>
+
+          <Text style={styles.subtitle}>
+            Review creators who applied to your
+            campaigns and choose the right fit.
           </Text>
         </View>
-      ) : (
-        applications.map((application) => {
-          const profile = application.creator.creatorProfile;
 
-          const isUpdating = updatingId === application.id;
+        {/* Application count */}
 
-          return (
-            <View key={application.id} style={styles.card}>
-              {/* Campaign + Status */}
-              <View style={styles.topRow}>
-                <View style={styles.titleContainer}>
-                  <Text style={styles.projectTitle}>
-                    {application.project.title}
-                  </Text>
+        {applications.length > 0 && (
+          <View style={styles.countRow}>
+            <Text style={styles.countText}>
+              {applications.length}{" "}
+              {applications.length === 1
+                ? "application"
+                : "applications"}
+            </Text>
+          </View>
+        )}
 
-                  <Text style={styles.creatorName}>
-                    {application.creator.name}
-                  </Text>
-                </View>
+        {/* Empty */}
 
-                <Text
-                  style={[
-                    styles.status,
-                    application.status === "ACCEPTED" && styles.accepted,
-                    application.status === "REJECTED" && styles.rejected,
-                  ]}
-                >
-                  {application.status}
-                </Text>
-              </View>
-
-              {/* Creator information */}
-              <View style={styles.creatorInfo}>
-                <Text style={styles.sectionLabel}>CREATOR PROFILE</Text>
-
-                {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
-
-                <View style={styles.statsRow}>
-                  {profile?.followers !== null &&
-                    profile?.followers !== undefined && (
-                      <View style={styles.stat}>
-                        <Text style={styles.statValue}>
-                          {profile.followers.toLocaleString()}
-                        </Text>
-
-                        <Text style={styles.statLabel}>Followers</Text>
-                      </View>
-                    )}
-
-                  {profile?.averageViews !== null &&
-                    profile?.averageViews !== undefined && (
-                      <View style={styles.stat}>
-                        <Text style={styles.statValue}>
-                          {profile.averageViews.toLocaleString()}
-                        </Text>
-
-                        <Text style={styles.statLabel}>Avg Views</Text>
-                      </View>
-                    )}
-
-                  {profile?.engagementRate !== null &&
-                    profile?.engagementRate !== undefined && (
-                      <View style={styles.stat}>
-                        <Text style={styles.statValue}>
-                          {profile.engagementRate}%
-                        </Text>
-
-                        <Text style={styles.statLabel}>Engagement</Text>
-                      </View>
-                    )}
-                </View>
-
-                {profile?.platforms && (
-                  <View style={styles.detail}>
-                    <Text style={styles.detailLabel}>Platforms</Text>
-
-                    <Text style={styles.detailValue}>{profile.platforms}</Text>
-                  </View>
-                )}
-
-                {profile?.niches && (
-                  <View style={styles.detail}>
-                    <Text style={styles.detailLabel}>Niches</Text>
-
-                    <Text style={styles.detailValue}>{profile.niches}</Text>
-                  </View>
-                )}
-
-                {profile?.location && (
-                  <View style={styles.detail}>
-                    <Text style={styles.detailLabel}>Location</Text>
-
-                    <Text style={styles.detailValue}>{profile.location}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Proposal */}
-              <Text style={styles.sectionLabel}>PROPOSAL</Text>
-
-              <Text style={styles.proposal}>{application.proposal}</Text>
-
-              {/* Price */}
-              <View style={styles.priceBox}>
-                <Text style={styles.priceLabel}>Creator's proposed price</Text>
-
-                <Text style={styles.price}>
-                  {application.proposedPrice
-                    ? `₹${application.proposedPrice.toLocaleString()}`
-                    : "Not specified"}
-                </Text>
-              </View>
-
-              {/* Actions */}
-              {application.status === "PENDING" && (
-                <View style={styles.actions}>
-                  <Pressable
-                    style={[styles.actionButton, styles.rejectButton]}
-                    disabled={isUpdating}
-                    onPress={() => handleDecision(application.id, "REJECTED")}
-                  >
-                    <Text style={styles.rejectText}>Reject</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={[styles.actionButton, styles.acceptButton]}
-                    disabled={isUpdating}
-                    onPress={() => {
-                      console.log("ACCEPT BUTTON CLICKED", application.id);
-                      handleDecision(application.id, "ACCEPTED");
-                    }}
-                  >
-                    <Text style={styles.acceptText}>
-                      {isUpdating ? "Updating..." : "Accept Creator"}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-
-              {application.status === "ACCEPTED" && (
-                <View style={styles.acceptedBox}>
-                  <Text style={styles.acceptedBoxText}>
-                    ✓ Creator accepted for this campaign
-                  </Text>
-                </View>
-              )}
-
-              {application.status === "REJECTED" && (
-                <View style={styles.rejectedBox}>
-                  <Text style={styles.rejectedBoxText}>
-                    Application rejected
-                  </Text>
-                </View>
-              )}
+        {applications.length === 0 ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Text style={styles.emptyIconText}>
+                ◌
+              </Text>
             </View>
-          );
-        })
-      )}
-    </ScrollView>
+
+            <Text style={styles.emptyTitle}>
+              No applications yet
+            </Text>
+
+            <Text style={styles.emptyText}>
+              Applications from creators will
+              appear here once they apply to your
+              campaigns.
+            </Text>
+
+            <Pressable
+              style={styles.emptyButton}
+              onPress={() =>
+                router.push(
+                  "/(client)/create-project",
+                )
+              }
+            >
+              <Text
+                style={styles.emptyButtonText}
+              >
+                Create Campaign
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          applications.map((application) => {
+            const profile =
+              application.creator
+                .creatorProfile;
+
+            const isUpdating =
+              updatingId ===
+              application.id;
+
+            const creatorName =
+              application.creator.name;
+
+            const avatarLetter =
+              creatorName
+                .charAt(0)
+                .toUpperCase();
+
+            return (
+              <View
+                key={application.id}
+                style={styles.card}
+              >
+                {/* Campaign header */}
+
+                <View style={styles.cardHeader}>
+                  <View
+                    style={
+                      styles.titleContainer
+                    }
+                  >
+                    <Text
+                      style={styles.campaignLabel}
+                    >
+                      CAMPAIGN
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.projectTitle
+                      }
+                    >
+                      {
+                        application.project
+                          .title
+                      }
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      application.status ===
+                        "ACCEPTED" &&
+                        styles.acceptedBadge,
+                      application.status ===
+                        "REJECTED" &&
+                        styles.rejectedBadge,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        application.status ===
+                          "ACCEPTED" &&
+                          styles.acceptedStatusText,
+                        application.status ===
+                          "REJECTED" &&
+                          styles.rejectedStatusText,
+                      ]}
+                    >
+                      {
+                        application.status
+                      }
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Creator */}
+
+                <View style={styles.creatorHeader}>
+                  <View style={styles.avatar}>
+                    <Text
+                      style={
+                        styles.avatarText
+                      }
+                    >
+                      {avatarLetter}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.creatorHeaderText
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.creatorName
+                      }
+                    >
+                      {creatorName}
+                    </Text>
+
+                    {profile?.platforms && (
+                      <Text
+                        style={
+                          styles.creatorMeta
+                        }
+                      >
+                        {profile.platforms}
+                        {profile.niches
+                          ? ` • ${profile.niches}`
+                          : ""}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                {/* Creator profile */}
+
+                <View
+                  style={styles.profileSection}
+                >
+                  <Text
+                    style={styles.sectionLabel}
+                  >
+                    CREATOR PROFILE
+                  </Text>
+
+                  {profile?.bio && (
+                    <Text
+                      style={styles.bio}
+                    >
+                      {profile.bio}
+                    </Text>
+                  )}
+
+                  {/* Stats */}
+
+                  <View style={styles.statsRow}>
+                    {profile?.followers !==
+                      null &&
+                      profile?.followers !==
+                        undefined && (
+                        <View
+                          style={styles.stat}
+                        >
+                          <Text
+                            style={
+                              styles.statValue
+                            }
+                          >
+                            {profile.followers.toLocaleString()}
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.statLabel
+                            }
+                          >
+                            Followers
+                          </Text>
+                        </View>
+                      )}
+
+                    {profile?.averageViews !==
+                      null &&
+                      profile?.averageViews !==
+                        undefined && (
+                        <View
+                          style={styles.stat}
+                        >
+                          <Text
+                            style={
+                              styles.statValue
+                            }
+                          >
+                            {profile.averageViews.toLocaleString()}
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.statLabel
+                            }
+                          >
+                            Avg Views
+                          </Text>
+                        </View>
+                      )}
+
+                    {profile?.engagementRate !==
+                      null &&
+                      profile?.engagementRate !==
+                        undefined && (
+                        <View
+                          style={styles.stat}
+                        >
+                          <Text
+                            style={
+                              styles.statValue
+                            }
+                          >
+                            {
+                              profile.engagementRate
+                            }
+                            %
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.statLabel
+                            }
+                          >
+                            Engagement
+                          </Text>
+                        </View>
+                      )}
+                  </View>
+
+                  {/* Extra information */}
+
+                  {profile?.location && (
+                    <View
+                      style={styles.detail}
+                    >
+                      <Text
+                        style={
+                          styles.detailLabel
+                        }
+                      >
+                        LOCATION
+                      </Text>
+
+                      <Text
+                        style={
+                          styles.detailValue
+                        }
+                      >
+                        {profile.location}
+                      </Text>
+                    </View>
+                  )}
+
+                  {profile?.portfolio && (
+                    <View
+                      style={styles.detail}
+                    >
+                      <Text
+                        style={
+                          styles.detailLabel
+                        }
+                      >
+                        PORTFOLIO
+                      </Text>
+
+                      <Text
+                        style={
+                          styles.detailValue
+                        }
+                        numberOfLines={1}
+                      >
+                        {profile.portfolio}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Proposal */}
+
+                <View
+                  style={styles.proposalSection}
+                >
+                  <Text
+                    style={styles.sectionLabel}
+                  >
+                    PROPOSAL
+                  </Text>
+
+                  <Text
+                    style={styles.proposal}
+                  >
+                    {application.proposal}
+                  </Text>
+                </View>
+
+                {/* Price */}
+
+                <View style={styles.priceBox}>
+                  <View>
+                    <Text
+                      style={
+                        styles.priceLabel
+                      }
+                    >
+                      CREATOR'S PROPOSED PRICE
+                    </Text>
+
+                    <Text
+                      style={styles.price}
+                    >
+                      {application.proposedPrice
+                        ? `₹${application.proposedPrice.toLocaleString()}`
+                        : "Not specified"}
+                    </Text>
+                  </View>
+
+                  {application.project
+                    .budget && (
+                    <View
+                      style={
+                        styles.budgetSide
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.budgetLabel
+                        }
+                      >
+                        YOUR BUDGET
+                      </Text>
+
+                      <Text
+                        style={
+                          styles.budgetValue
+                        }
+                      >
+                        ₹
+                        {application.project.budget.toLocaleString()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Pending actions */}
+
+                {application.status ===
+                  "PENDING" && (
+                  <View
+                    style={styles.actions}
+                  >
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.actionButton,
+                        styles.rejectButton,
+                        pressed &&
+                          styles.buttonPressed,
+                      ]}
+                      disabled={
+                        isUpdating
+                      }
+                      onPress={() =>
+                        handleDecision(
+                          application.id,
+                          "REJECTED",
+                        )
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.rejectText
+                        }
+                      >
+                        Reject
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.actionButton,
+                        styles.acceptButton,
+                        pressed &&
+                          styles.buttonPressed,
+                        isUpdating &&
+                          styles.disabledButton,
+                      ]}
+                      disabled={
+                        isUpdating
+                      }
+                      onPress={() =>
+                        handleDecision(
+                          application.id,
+                          "ACCEPTED",
+                        )
+                      }
+                    >
+                      {isUpdating ? (
+                        <ActivityIndicator
+                          color="#FFFFFF"
+                        />
+                      ) : (
+                        <Text
+                          style={
+                            styles.acceptText
+                          }
+                        >
+                          Accept Creator
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                )}
+
+                {/* Accepted */}
+
+                {application.status ===
+                  "ACCEPTED" && (
+                  <View
+                    style={styles.acceptedBox}
+                  >
+                    <Text
+                      style={
+                        styles.acceptedIcon
+                      }
+                    >
+                      ✓
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.acceptedBoxText
+                      }
+                    >
+                      Creator accepted for
+                      this campaign
+                    </Text>
+                  </View>
+                )}
+
+                {/* Rejected */}
+
+                {application.status ===
+                  "REJECTED" && (
+                  <View
+                    style={styles.rejectedBox}
+                  >
+                    <Text
+                      style={
+                        styles.rejectedIcon
+                      }
+                    >
+                      ×
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.rejectedBoxText
+                      }
+                    >
+                      Application rejected
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          })
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+
+  scroll: {
+    flex: 1,
+  },
+
   container: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 55,
-    paddingBottom: 60,
-    backgroundColor: "#fff",
+    paddingHorizontal: spacing.xl,
+    paddingTop: 28,
+    paddingBottom: 50,
   },
 
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    padding: spacing.xl,
+    backgroundColor: colors.background,
   },
 
   loadingText: {
-    marginTop: 10,
-    color: "#777",
+    marginTop: spacing.md,
+    color: colors.secondaryText,
+    fontSize: 14,
   },
 
   back: {
-    color: "#555",
-    fontSize: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingVertical: spacing.sm,
+  },
+
+  backArrow: {
+    color: colors.text,
+    fontSize: 24,
+    marginRight: spacing.sm,
+  },
+
+  backText: {
+    color: colors.secondaryText,
+    fontSize: 14,
     fontWeight: "600",
-    marginBottom: 22,
+  },
+
+  header: {
+    marginTop: spacing.xl,
   },
 
   title: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#111",
+    color: colors.text,
+    ...typography.screenTitle,
   },
 
   subtitle: {
-    marginTop: 7,
-    color: "#777",
-    marginBottom: 30,
+    marginTop: spacing.sm,
+    color: colors.secondaryText,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+
+  countRow: {
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
+  },
+
+  countText: {
+    color: colors.mutedText,
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   empty: {
+    marginTop: spacing.xxl,
+    padding: spacing.xl,
+    borderRadius: radius.card,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: "center",
-    paddingTop: 60,
+  },
+
+  emptyIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: radius.pill,
+    backgroundColor: "#EEECFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  emptyIconText: {
+    color: colors.primary,
+    fontSize: 30,
   },
 
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111",
+    marginTop: spacing.lg,
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: "800",
   },
 
   emptyText: {
-    marginTop: 8,
-    color: "#777",
+    marginTop: spacing.sm,
+    color: colors.secondaryText,
+    fontSize: 14,
+    lineHeight: 21,
     textAlign: "center",
   },
 
-  card: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 18,
-    backgroundColor: "#fff",
+  emptyButton: {
+    height: 48,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.button,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
-  topRow: {
+  emptyButtonText: {
+    color: colors.card,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  card: {
+    marginTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  cardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
   },
 
   titleContainer: {
     flex: 1,
+    paddingRight: spacing.md,
+  },
+
+  campaignLabel: {
+    color: colors.mutedText,
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
   },
 
   projectTitle: {
+    marginTop: spacing.xs,
+    color: colors.text,
     fontSize: 18,
-    fontWeight: "700",
-    color: "#111",
+    fontWeight: "800",
+    lineHeight: 23,
+  },
+
+  statusBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: "#F5F5F5",
+  },
+
+  acceptedBadge: {
+    backgroundColor: "#EAF7EE",
+  },
+
+  rejectedBadge: {
+    backgroundColor: "#F7F7F7",
+  },
+
+  statusText: {
+    color: colors.secondaryText,
+    fontSize: 9,
+    fontWeight: "800",
+  },
+
+  acceptedStatusText: {
+    color: colors.success,
+  },
+
+  rejectedStatusText: {
+    color: colors.error,
+  },
+
+  creatorHeader: {
+    marginTop: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.pill,
+    backgroundColor: "#EEECFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  avatarText: {
+    color: colors.primary,
+    fontSize: 19,
+    fontWeight: "800",
+  },
+
+  creatorHeaderText: {
+    flex: 1,
+    marginLeft: spacing.md,
   },
 
   creatorName: {
-    marginTop: 7,
+    color: colors.text,
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
-
-  status: {
-    fontSize: 11,
     fontWeight: "800",
-    color: "#777",
   },
 
-  accepted: {
-    color: "green",
+  creatorMeta: {
+    marginTop: 4,
+    color: colors.secondaryText,
+    fontSize: 12,
   },
 
-  rejected: {
-    color: "red",
-  },
-
-  creatorInfo: {
-    marginTop: 20,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
+  profileSection: {
+    marginTop: spacing.lg,
   },
 
   sectionLabel: {
-    fontSize: 11,
+    color: colors.mutedText,
+    fontSize: 9,
     fontWeight: "800",
-    color: "#888",
-    letterSpacing: 0.5,
+    letterSpacing: 0.7,
   },
 
   bio: {
-    marginTop: 8,
+    marginTop: spacing.sm,
+    color: "#4B4B4B",
+    fontSize: 14,
     lineHeight: 21,
-    color: "#444",
   },
 
   statsRow: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
 
   stat: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    padding: 12,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.background,
   },
 
   statValue: {
-    fontSize: 16,
+    color: colors.text,
+    fontSize: 15,
     fontWeight: "800",
-    color: "#111",
   },
 
   statLabel: {
     marginTop: 3,
-    fontSize: 11,
-    color: "#777",
+    color: colors.mutedText,
+    fontSize: 10,
   },
 
   detail: {
-    marginTop: 12,
+    marginTop: spacing.md,
   },
 
   detailLabel: {
-    fontSize: 11,
-    color: "#888",
+    color: colors.mutedText,
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
 
   detailValue: {
     marginTop: 3,
-    fontSize: 14,
+    color: colors.text,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#333",
+  },
+
+  proposalSection: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
 
   proposal: {
-    marginTop: 8,
+    marginTop: spacing.sm,
+    color: "#4B4B4B",
+    fontSize: 14,
     lineHeight: 22,
-    color: "#444",
   },
 
   priceBox: {
-    marginTop: 18,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#f5f5f5",
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#EEECFF",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
   priceLabel: {
-    fontSize: 12,
-    color: "#777",
+    color: "#6B6490",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
 
   price: {
     marginTop: 4,
-    fontSize: 18,
+    color: colors.primary,
+    fontSize: 20,
     fontWeight: "800",
-    color: "#111",
+  },
+
+  budgetSide: {
+    alignItems: "flex-end",
+  },
+
+  budgetLabel: {
+    color: "#6B6490",
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+
+  budgetValue: {
+    marginTop: 4,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "700",
   },
 
   actions: {
+    marginTop: spacing.lg,
     flexDirection: "row",
-    gap: 12,
-    marginTop: 20,
+    gap: spacing.sm,
   },
 
   actionButton: {
     flex: 1,
     height: 50,
-    borderRadius: 12,
+    borderRadius: radius.button,
     justifyContent: "center",
     alignItems: "center",
   },
 
   rejectButton: {
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.border,
   },
 
   acceptButton: {
-    backgroundColor: "#111",
+    backgroundColor: colors.primary,
   },
 
   rejectText: {
+    color: colors.secondaryText,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#555",
   },
 
   acceptText: {
+    color: colors.card,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#fff",
   },
 
   acceptedBox: {
-    marginTop: 20,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#f1f8f1",
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#EAF7EE",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  acceptedIcon: {
+    color: colors.success,
+    fontSize: 18,
+    fontWeight: "800",
+    marginRight: spacing.sm,
   },
 
   acceptedBoxText: {
-    color: "green",
+    color: colors.success,
+    fontSize: 13,
     fontWeight: "700",
   },
 
   rejectedBox: {
-    marginTop: 20,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#fafafa",
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: "#F7F7F7",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  rejectedIcon: {
+    color: colors.error,
+    fontSize: 18,
+    fontWeight: "800",
+    marginRight: spacing.sm,
   },
 
   rejectedBoxText: {
-    color: "#777",
+    color: colors.secondaryText,
+    fontSize: 13,
     fontWeight: "600",
+  },
+
+  disabledButton: {
+    opacity: 0.6,
+  },
+
+  buttonPressed: {
+    opacity: 0.82,
   },
 });
